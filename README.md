@@ -36,7 +36,8 @@ public IActionResult ContactMvc(ContactViewModel viewModel)
     return View(viewModel);
 }
 
-[ApiExceptionFilter]
+[ExceptionFilter]
+[ErrorFilter]
 [Route("api/contact")]
 [HttpGet]
 public ActionResult<ContactViewModel> ContactApi()
@@ -44,7 +45,8 @@ public ActionResult<ContactViewModel> ContactApi()
     return new ContactViewModel();
 }
 
-[ApiExceptionFilter]
+[ExceptionFilter]
+[ErrorFilter]
 [Route("api/contact")]
 [HttpPost]
 public IActionResult ContactApi(ContactViewModel viewModel)

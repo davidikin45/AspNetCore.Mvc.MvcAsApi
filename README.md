@@ -344,6 +344,34 @@ else
 | [FromBodyFormAndRouteQueryAttribute] or [FromBodyAndModelBindingAttribute] | Binds Model to Body/Form and Route/Query                                                      |
 | [FromBodyExplicitAttribute]                                                | If conventions are used to change [FromBody] attributes this can be used to prevent doing so. |
 
+## Model Binding Dynamic Mvc
+* By default only [JsonInputFormatter](https://github.com/aspnet/Mvc/blob/master/src/Microsoft.AspNetCore.Mvc.Formatters.Json/JsonInputFormatter.cs) binds dynamic as JObject. [ComplexTypeModelBinderProvider](https://github.com/aspnet/AspNetCore/blob/c565386a3ed135560bc2e9017aa54a950b4e35dd/src/Mvc/Mvc.Core/src/ModelBinding/Binders/ComplexTypeModelBinder.cs) doesn't bind to dynamic so I have created an additional optional ModelBinder which allows the same functionality for Mvc.
+* https://github.com/aspnet/AspNetCore/issues/1748
+* https://stackoverflow.com/questions/9450619/using-dynamic-objects-with-asp-net-mvc-model-binding
+```
+services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2)
+.AddDynamicModelBinder();
+			
+ public IActionResult Dynamic()
+{
+	return View(new ContactViewModel());
+}
+
+[ValidateAntiForgeryToken]
+[HttpPost]
+public IActionResult Dynamic(dynamic contactViewModel)
+{
+	if (ModelState.IsValid)
+	{
+		return RedirectToAction(nameof(Index));
+	}
+
+	var viewModel = contactViewModel.ToObject<ContactViewModel>();
+
+	return View(viewModel);
+}
+```
+
 ## Model State Errors
 * I recommend using options.EnableEnhancedValidationProblemDetails() as this adds traceId and timeGenerated to the Invalid Model State Problem Details.
 * Pass true to add angular formatted errors to the Invalid Model State Problem Details also.

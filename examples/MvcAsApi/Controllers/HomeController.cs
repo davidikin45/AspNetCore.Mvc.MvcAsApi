@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using MvcAsApi.Models;
+using Newtonsoft.Json.Linq;
 
 namespace MvcAsApi.Controllers
 {
@@ -51,7 +52,9 @@ namespace MvcAsApi.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            return View(new ContactViewModel());
+            var viewModel = contactViewModel.ToObject<ContactViewModel>();
+
+            return View(viewModel);
         }
 
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]

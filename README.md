@@ -197,9 +197,14 @@ public IActionResult ContactMvc()
 [HttpPost]
 public IActionResult ContactMvc(dynamic viewModel)
 {
-    //Submit Contact Form
+	if (ModelState.IsValid)
+	{
+		return RedirectToAction(nameof(Index));
+	}
 
-    return RedirectToAction("Home");
+	var viewModel = contactViewModel.ToObject<ContactViewModel>();
+
+	return View(viewModel);
 }
 ```
 

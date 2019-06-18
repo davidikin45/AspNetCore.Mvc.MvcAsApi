@@ -4,7 +4,7 @@
 * The [ApiErrorFilterAttribute] is gives similar functionality to the [ClientErrorResultFilter](https://github.com/aspnet/AspNetCore/blob/c565386a3ed135560bc2e9017aa54a950b4e35dd/src/Mvc/Mvc.Core/src/Infrastructure/ClientErrorResultFilter.cs) that is applied when a controller is decorated with [ApiController](https://docs.microsoft.com/en-us/aspnet/core/web-api/?view=aspnetcore-2.2#multipartform-data-request-inference) but it only handles request which don't have Accept header = text/html. 
 * The [ApiExceptionFilterAttribute] is allows api exceptions to be handled. It only handles request which don't have Accept header = text/html.
 
-I think it could be most useful for the following scenarios:
+Could be useful for the following scenarios:
 1. Allowing Developers to Test/Develop/Debug Mvc Forms without worrying about UI. Used by applying conventions.
 2. Integration Tests for Mvc without the need of [WebApplicationFactory](https://docs.microsoft.com/en-us/aspnet/core/test/integration-tests?view=aspnetcore-2.2). Used by applying convention.
 3. Used in Production to allow specific Mvc controller actions to return model as json/xml data.

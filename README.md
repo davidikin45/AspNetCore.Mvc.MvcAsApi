@@ -220,7 +220,7 @@ services.AddEnhancedProblemDetailsClientErrorFactory(true);
 ```
 
 | Attribute                     | Description                                                                                 |
-|-:-----------------------------|-:-------------------------------------------------------------------------------------------|
+|:------------------------------|:--------------------------------------------------------------------------------------------|
 | [ApiErrorFilterAttribute]     | Return problem details in json/xml if an error response is returned from Controller Action. |
 | [ApiExceptionFilterAttribute] | Return problem details in json/xml if an exception is thrown from Controller Action.        |
 

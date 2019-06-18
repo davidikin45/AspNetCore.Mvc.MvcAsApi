@@ -1,8 +1,8 @@
-﻿using AspNetCore.Mvc.HybridModelBindingAndViewToObjectResult;
-using AspNetCore.Mvc.HybridModelBindingAndViewToObjectResult.Conventions;
-using AspNetCore.Mvc.HybridModelBindingAndViewToObjectResult.Factories;
-using AspNetCore.Mvc.HybridModelBindingAndViewToObjectResult.Middleware;
-using AspNetCore.Mvc.HybridModelBindingAndViewToObjectResult.ModelBinding;
+﻿using AspNetCore.Mvc.MvcAsApi;
+using AspNetCore.Mvc.MvcAsApi.Conventions;
+using AspNetCore.Mvc.MvcAsApi.Factories;
+using AspNetCore.Mvc.MvcAsApi.Middleware;
+using AspNetCore.Mvc.MvcAsApi.ModelBinding;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -36,16 +36,19 @@ namespace MvcAsApi
             services.AddMvc(options=> {
                 if (HostingEnvironment.IsDevelopment())
                 {
+                    options.Conventions.Add(new MvcAsApiConvention());
+
                     //Return problem details in json/xml if an error response is returned via Api.
-                    options.Conventions.Add(new ApiErrorFilterConvention());
+                    //options.Conventions.Add(new ApiErrorFilterConvention());
                     //Return problem details in json/xml if an exception is thrown via Api
-                    options.Conventions.Add(new ApiExceptionFilterConvention());
+                    //options.Conventions.Add(new ApiExceptionFilterConvention());
                     //Post data to MVC Controller from API
-                    options.Conventions.Add(new FromBodyAndOtherSourcesConvention(true, true, true));
+                    //options.Conventions.Add(new FromBodyAndOtherSourcesConvention(true, true, true));
                     //Return data uisng output formatter when acccept header is application/json or application/xml
-                    options.Conventions.Add(new ConvertViewResultToObjectResultConvention());
+                    //options.Conventions.Add(new ConvertViewResultToObjectResultConvention());
                 }
             }).SetCompatibilityVersion(CompatibilityVersion.Version_2_2)
+            //Optional
             .AddDynamicModelBinder();
 
             //Optional

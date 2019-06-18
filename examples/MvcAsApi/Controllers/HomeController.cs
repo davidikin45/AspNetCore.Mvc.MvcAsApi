@@ -37,6 +37,23 @@ namespace MvcAsApi.Controllers
             return View(contactViewModel);
         }
 
+        public IActionResult Dynamic()
+        {
+            return View(new ContactViewModel());
+        }
+
+        [ValidateAntiForgeryToken]
+        [HttpPost]
+        public IActionResult Dynamic(dynamic contactViewModel)
+        {
+            if (ModelState.IsValid)
+            {
+                return RedirectToAction(nameof(Index));
+            }
+
+            return View(new ContactViewModel());
+        }
+
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()
         {

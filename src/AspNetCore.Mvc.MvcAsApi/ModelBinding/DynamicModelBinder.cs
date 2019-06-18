@@ -298,7 +298,7 @@ namespace AspNetCore.Mvc.MvcAsApi.ModelBinding
                 throw new ArgumentNullException(nameof(context));
             }
 
-            if (context.Metadata.ModelType == typeof(object) && !context.Metadata.IsCollectionType)
+            if ((context.Metadata.ModelType == typeof(object) || context.Metadata.ModelType == typeof(JObject)) && !context.Metadata.IsCollectionType)
             {
                 var loggerFactory = context.Services.GetRequiredService<ILoggerFactory>();
                 var options = context.Services.GetRequiredService<IOptions<MvcOptions>>();

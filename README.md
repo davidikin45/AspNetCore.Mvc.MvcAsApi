@@ -206,6 +206,7 @@ public IActionResult ContactMvc(dynamic viewModel)
 * For handling 404 and exceptions from other middleware you will need to implement Global Exception Handling. See below.
 * IClientErrorFactory will handle generating the problem details when an Error Response occurs. See default [ProblemDetailsClientErrorFactory](https://github.com/aspnet/AspNetCore/blob/c565386a3ed135560bc2e9017aa54a950b4e35dd/src/Mvc/Mvc.Core/src/Infrastructure/ProblemDetailsClientErrorFactory.cs).
 * An enhanced IClientErrorFactory can be used as this adds traceId, timeGenerated and also handles generating the problem details when an exception is thrown. 
+* services.AddProblemDetailsClientErrorFactory(());
 * Use [ConfigureApiBehaviorOptions to configure problem detail type and title mapping](https://docs.microsoft.com/en-us/aspnet/core/web-api/?view=aspnetcore-2.2).
 
 ```
@@ -380,7 +381,7 @@ public IActionResult Dynamic(dynamic contactViewModel)
  services.ConfigureProblemDetailsInvalidModelStateFactory(true);
 ```
 
-*Example invalid ModelState response
+* Example invalid ModelState response
 ```
 {
     "errors": {
@@ -398,7 +399,7 @@ public IActionResult Dynamic(dynamic contactViewModel)
 }
 ```
 
-*Example invalid ModelState response with Angular formatted errors
+* Example invalid ModelState response with Angular formatted errors
 ```
 {
     "errors": {

@@ -6,7 +6,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
 using System;
+using System.Threading.Tasks;
 using WebApiContrib.Core.Results;
 
 namespace AspNetCore.Mvc.MvcAsApi.Middleware
@@ -77,17 +79,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Middleware
                             problemDetails.Type = errorData.Link;
                         }
 
-                        var result = new ObjectResult(problemDetails)
-                        {
-                            StatusCode = problemDetails.Status,
-                            ContentTypes =
-                            {
-                                "application/problem+json",
-                                "application/problem+xml",
-                            },
-                        };
-
-                        await context.WriteActionResult(result);
+                        await WriteResultAsync(context, options, problemDetails).ConfigureAwait(false);
                     }
                     else
                     {
@@ -101,20 +93,35 @@ namespace AspNetCore.Mvc.MvcAsApi.Middleware
                             problemDetails.Type = errorData.Link;
                         }
 
-                        var result = new ObjectResult(problemDetails)
-                        {
-                            StatusCode = problemDetails.Status,
-                            ContentTypes =
+                        await WriteResultAsync(context, options, problemDetails).ConfigureAwait(false);
+                    }
+                });
+            };
+        }
+
+        private static async Task WriteResultAsync(HttpContext context, ApiBehaviorOptions options, ProblemDetails problemDetails)
+        {
+            if(options != null)
+            {
+                var result = new ObjectResult(problemDetails)
+                {
+                    StatusCode = problemDetails.Status,
+                    ContentTypes =
                             {
                                 "application/problem+json",
                                 "application/problem+xml",
                             },
-                        };
+                };
 
-                        await context.WriteActionResult(result);
-                    }
-                });
-            };
+                await context.WriteActionResult(result);
+            }
+            else
+            {
+                var message = JsonConvert.SerializeObject(problemDetails);
+                context.Response.StatusCode = problemDetails.Status.Value;
+                context.Response.ContentType = "application/problem+json";
+                await context.Response.WriteAsync(message).ConfigureAwait(false);
+            }
         }
     }
 

@@ -216,7 +216,7 @@ services.AddProblemDetailsClientErrorAndExceptionFactory(true);
 | Attribute                     | Description                                                                                                                                                                                                                                  |
 |:------------------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | [ApiErrorFilterAttribute]     | Return problem details in json/xml if an error response is returned from Controller Action. The parameter handleBrowserRequests allows the attribute to be used on Mvc actions by passing false and [ApiController] actions by passing true. |
-| [ApiExceptionFilterAttribute] | Return problem details in json/xml if an exception is thrown from Controller Action. The parameter handleBrowserRequests allows the attribute to be used on Mvc actions by passing false and [ApiController] actions by passing true.        |
+| [ApiExceptionFilterAttribute] | Converts exception to an Error Response of type ExceptionResult:StatusResult if an exception is thrown from Controller Action. The ApiErrorFilterAttribute can then handle the Error Response. The parameter handleBrowserRequests allows the attribute to be used on Mvc actions by passing false and [ApiController] actions by passing true.        |
 
 * Example Error Response
 ```
@@ -248,6 +248,8 @@ services.AddProblemDetailsClientErrorAndExceptionFactory(true);
 * Usually would use MVC Filters OR Global Error/Exception handling but not both. It will work with both though.
 * Using [WebAPIContrib.Core](https://github.com/WebApiContrib/WebAPIContrib.Core) to allow the use of action results outside of MVC.
 * Use [ConfigureApiBehaviorOptions to configure problem detail type and title mapping](https://docs.microsoft.com/en-us/aspnet/core/web-api/?view=aspnetcore-2.2).
+* The ProblemDetailsErrorResponseHandler by default intercepts the response stream using [RecyclableMemoryStream](https://github.com/microsoft/Microsoft.IO.RecyclableMemoryStream) rather than new MemoryStream() to improve application performance.
+* Set appBranch.UseProblemDetailsErrorResponseHandler(options => options.InterceptResponseStream = false); to not intercept response and only change response if !context.Response.HasStarted.
 
 ```
 if (!env.IsProduction())

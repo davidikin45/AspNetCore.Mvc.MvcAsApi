@@ -246,7 +246,7 @@ services.AddProblemDetailsClientErrorAndExceptionFactory(true);
 ## Global Error Responses (Status Code >= 400) and Exceptions - Middleware
 * Catches [404 error responses when route is not found and exceptions from MVC and other middleware](https://github.com/aspnet/AspNetCore/issues/4953).
 * Usually would use MVC Filters OR Global Error/Exception handling but not both. It will work with both though.
-* Using [WebAPIContrib.Core](https://github.com/WebApiContrib/WebAPIContrib.Core) to allow the use of action results outside of MVC.
+* Using [WebAPIContrib.Core](https://github.com/WebApiContrib/WebAPIContrib.Core) to allow the use of action results and content negotiation outside of MVC if MVC services are in DI container. Otherwise serialized to json.
 * Use [ConfigureApiBehaviorOptions to configure problem detail type and title mapping](https://docs.microsoft.com/en-us/aspnet/core/web-api/?view=aspnetcore-2.2).
 * The ProblemDetailsErrorResponseHandler by default intercepts the response stream using [RecyclableMemoryStream](https://github.com/microsoft/Microsoft.IO.RecyclableMemoryStream) rather than new MemoryStream() to improve application performance.
 * Set appBranch.UseProblemDetailsErrorResponseHandler(options => options.InterceptResponseStream = false); to not intercept response and only change response if !context.Response.HasStarted.

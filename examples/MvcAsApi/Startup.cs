@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using AspNetCore.Mvc.MvcAsApi.Extensions;
 
 namespace MvcAsApi
 {
@@ -34,14 +35,17 @@ namespace MvcAsApi
             });
 
             services.AddMvc(options=> {
+                options.ReturnHttpNotAcceptable = true; //If Browser sends Accept not containing */* the server will try to find a formatter that can produce a response in one of the formats specified by the accept header.
+                options.RespectBrowserAcceptHeader = false; //If Browser sends Accept containing */* the server will ignore Accept header and use the first formatter that can format the object.
+
                 if (HostingEnvironment.IsDevelopment())
                 {
                     options.Conventions.Add(new MvcAsApiConvention());
 
                     //Return problem details in json/xml if an error response is returned via Api.
-                    //options.Conventions.Add(new ApiErrorFilterConvention());
+                    //options.Conventions.Add(new ApiErrorFilterConvention(true, true));
                     //Return problem details in json/xml if an exception is thrown via Api
-                    //options.Conventions.Add(new ApiExceptionFilterConvention());
+                    //options.Conventions.Add(new ApiExceptionFilterConvention(true, true));
                     //Post data to MVC Controller from API
                     //options.Conventions.Add(new FromBodyAndOtherSourcesConvention(true, true, true));
                     //Return data uisng output formatter when acccept header is application/json or application/xml
@@ -55,13 +59,9 @@ namespace MvcAsApi
             if (HostingEnvironment.IsDevelopment())
             {
                 //Overrides the default IClientErrorFactory implementation which adds traceId, timeGenerated and exception details to the ProblemDetails response.
-                services.AddEnhancedProblemDetailsClientErrorFactory(true);
-
-                services.Configure<ApiBehaviorOptions>(options =>
-                {
-                    //Overrides the default InvalidModelStateResponseFactory, adds traceId and timeGenerated to the ProblemDetails response. 
-                    options.EnableEnhancedValidationProblemDetails();
-                });
+                services.AddProblemDetailsClientErrorAndExceptionFactory(true);
+                //Overrides the default InvalidModelStateResponseFactory, adds traceId and timeGenerated to the ProblemDetails response. 
+                services.ConfigureProblemDetailsInvalidModelStateFactory(true);
             }
         }
 

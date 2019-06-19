@@ -2,48 +2,50 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
-using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.Extensions.Logging;
 using System;
 
-namespace AspNetCore.Mvc.MvcAsApi.Filters
+namespace AspNetCore.Mvc.MvcAsApi.Attributes
 {
     public class ApiExceptionFilterAttribute : TypeFilterAttribute
     {
-        public ApiExceptionFilterAttribute()
-            :this(((context) => true))
+        public ApiExceptionFilterAttribute(bool handleBrowserRequests = false)
+            :this(handleBrowserRequests, ((context) => true))
         {
 
         }
 
-        public ApiExceptionFilterAttribute(Func<ExceptionContext, bool> handleException)
+        public ApiExceptionFilterAttribute(bool handleBrowserRequests, Func<ExceptionContext, bool> handleException)
        :base(typeof(ApiExceptionFilterImpl))
         {
-            Arguments = new object[] { handleException };
+            Arguments = new object[] { handleBrowserRequests, handleException };
         }
 
         //https://github.com/aspnet/AspNetCore/blob/c565386a3ed135560bc2e9017aa54a950b4e35dd/src/Mvc/Mvc.Core/src/Infrastructure/ClientErrorResultFilter.cs#L44
         private class ApiExceptionFilterImpl : IExceptionFilter, IOrderedFilter
         {
             private readonly ILogger _logger;
-            internal const int FilterOrder = -3000;
+            internal const int FilterOrder = -2000;
 
-            private readonly Func<IClientErrorActionResult, bool> _handleError;
+            private readonly bool _handleBrowserRequests;
             private readonly Func<ExceptionContext, bool> _handleException;
             public int Order => FilterOrder;
 
-            public ApiExceptionFilterImpl(ILoggerFactory loggerFactory, Func<ExceptionContext, bool> handleException)
+            public ApiExceptionFilterImpl(ILoggerFactory loggerFactory, bool handleBrowserRequests, Func<ExceptionContext, bool> handleException)
             {
                 _logger = loggerFactory.CreateLogger<ApiExceptionFilterAttribute>();
+                _handleBrowserRequests = handleBrowserRequests;
                 _handleException = handleException;
             }
 
             public void OnException(ExceptionContext context)
             {
-                if (context.HttpContext.Request.IsApi() && _handleException(context))
+                if ((!_handleBrowserRequests && context.HttpContext.Request.IsBrowser()) || !_handleException(context))
                 {
-                    HandleException(context);
+                    return;
                 }
+
+                HandleException(context);
             }
 
             //https://andrewlock.net/using-cancellationtokens-in-asp-net-core-mvc-controllers/

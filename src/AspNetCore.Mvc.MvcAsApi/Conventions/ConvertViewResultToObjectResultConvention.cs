@@ -1,4 +1,4 @@
-﻿using AspNetCore.Mvc.MvcAsApi.Filters;
+﻿using AspNetCore.Mvc.MvcAsApi.Attributes;
 using Microsoft.AspNetCore.Mvc.ApplicationModels;
 
 namespace AspNetCore.Mvc.MvcAsApi.Conventions

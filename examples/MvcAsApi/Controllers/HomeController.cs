@@ -26,6 +26,11 @@ namespace MvcAsApi.Controllers
             return View(new ContactViewModel());
         }
 
+        public IActionResult ErrorResponse()
+        {
+            return BadRequest();
+        }
+
         [ValidateAntiForgeryToken]
         [HttpPost]
         public IActionResult Contact(ContactViewModel contactViewModel)

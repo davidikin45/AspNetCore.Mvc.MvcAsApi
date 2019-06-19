@@ -10,18 +10,18 @@ using WebApiContrib.Core.Results;
 
 namespace AspNetCore.Mvc.MvcAsApi.Middleware
 {
-    public class ApiGlobalErrorResponseProblemDetailsMiddleware
+    public class ProblemDetailsErrorResponseHandlerMiddleware
     {
         private readonly RequestDelegate _next;
 
         private readonly ILogger _logger;
         private readonly ApiBehaviorOptions _options;
-        private readonly ApiGlobalErrorResponseProblemDetailsOptions _errorResponseoptions;
+        private readonly ProblemDetailsErrorResponseHandlerOptions _errorResponseoptions;
 
         private static readonly Action<ILogger, Exception> _responseStartedErrorHandler =
            LoggerMessage.Define(LogLevel.Warning, new EventId(2, "ResponseStarted"), "The response has already started, the error handler will not be executed.");
 
-        public ApiGlobalErrorResponseProblemDetailsMiddleware(RequestDelegate next, ILogger<ApiGlobalErrorResponseProblemDetailsMiddleware> logger, IServiceProvider serviceProvider, ApiGlobalErrorResponseProblemDetailsOptions errorResponseoptions)
+        public ProblemDetailsErrorResponseHandlerMiddleware(RequestDelegate next, ILogger<ProblemDetailsErrorResponseHandlerMiddleware> logger, IServiceProvider serviceProvider, ProblemDetailsErrorResponseHandlerOptions errorResponseoptions)
         {
             _next = next;
             _logger = logger;
@@ -66,7 +66,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Middleware
         }
     }
 
-    public class ApiGlobalErrorResponseProblemDetailsOptions
+    public class ProblemDetailsErrorResponseHandlerOptions
     {
         public Func<HttpContext, bool> handleError = ((context) => context.Response.StatusCode >= 400);
     }

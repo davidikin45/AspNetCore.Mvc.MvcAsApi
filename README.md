@@ -264,9 +264,9 @@ if (!env.IsProduction())
 	 app.UseWhen(context => context.Request.IsApi(),
 		appBranch =>
 		{
-			appBranch.UseWebApiExceptionHandlerProblemDetails(true);
+			appBranch.UseProblemDetailsExceptionHandler(true);
 			//The global error handler has logic inbuilt so if an error has been handled by MVC Filters it won't try and reprocess. 
-			appBranch.UseWebApiErrorHandlerProblemDetails();
+			appBranch.UseProblemDetailsErrorResponseHandler();
 		}
    );
 
@@ -286,9 +286,9 @@ else
 	 app.UseWhen(context => context.Request.IsApi(),
 			appBranch =>
 			{
-				appBranch.UseWebApiExceptionHandlerProblemDetails(false);
+				appBranch.UseProblemDetailsExceptionHandler(false);
 				//The global error handler has logic inbuilt so if an error has been handled by MVC Filters it won't try and reprocess. 
-				appBranch.UseWebApiErrorHandlerProblemDetails();
+				appBranch.UseProblemDetailsErrorResponseHandler();
 			}
 	   );
    

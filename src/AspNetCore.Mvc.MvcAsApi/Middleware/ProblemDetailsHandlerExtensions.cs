@@ -11,27 +11,27 @@ using WebApiContrib.Core.Results;
 
 namespace AspNetCore.Mvc.MvcAsApi.Middleware
 {
-    public static class ApiGlobalErrorAndExceptionProblemDetailsExtension
+    public static class ProblemDetailsHandlerExtensions
     {
-        public static IApplicationBuilder UseWebApiErrorHandlerProblemDetails(this IApplicationBuilder app, Action<ApiGlobalErrorResponseProblemDetailsOptions> configureOptions = null)
+        public static IApplicationBuilder UseProblemDetailsErrorResponseHandler(this IApplicationBuilder app, Action<ProblemDetailsErrorResponseHandlerOptions> configureOptions = null)
         {
-            var options = new ApiGlobalErrorResponseProblemDetailsOptions();
+            var options = new ProblemDetailsErrorResponseHandlerOptions();
             if(configureOptions != null)
             {
                 configureOptions(options);
             }
 
-            return app.UseMiddleware<ApiGlobalErrorResponseProblemDetailsMiddleware>(options);
+            return app.UseMiddleware<ProblemDetailsErrorResponseHandlerOptions>(options);
         }
 
-        public static IApplicationBuilder UseWebApiExceptionHandlerProblemDetails(this IApplicationBuilder app, bool showExceptionDetails)
+        public static IApplicationBuilder UseProblemDetailsExceptionHandler(this IApplicationBuilder app, bool showExceptionDetails)
         {
-            return UseWebApiExceptionHandlerProblemDetails(app, ((options) => options.showExceptionDetails = ((context) => showExceptionDetails)));
+            return UseProblemDetailsExceptionHandler(app, ((options) => options.showExceptionDetails = ((context) => showExceptionDetails)));
         }
 
-       public static IApplicationBuilder UseWebApiExceptionHandlerProblemDetails(this IApplicationBuilder app, Action<ApiGlobalExceptionProblemDetailsOptions> configureOptions = null)
+       public static IApplicationBuilder UseProblemDetailsExceptionHandler(this IApplicationBuilder app, Action<ProblemDetailsExceptionHandlerOptions> configureOptions = null)
         {
-            var options = new ApiGlobalExceptionProblemDetailsOptions();
+            var options = new ProblemDetailsExceptionHandlerOptions();
             if (configureOptions != null)
             {
                 configureOptions(options);
@@ -44,7 +44,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Middleware
             return app.UseExceptionHandler(HandleApiException(loggerFactory, apiOptions?.Value, options));
         }
 
-        public static Action<IApplicationBuilder> HandleApiException(ILoggerFactory loggerFactory, ApiBehaviorOptions options, ApiGlobalExceptionProblemDetailsOptions exceptionOptions)
+        public static Action<IApplicationBuilder> HandleApiException(ILoggerFactory loggerFactory, ApiBehaviorOptions options, ProblemDetailsExceptionHandlerOptions exceptionOptions)
         {
             return appBuilder =>
             {
@@ -118,7 +118,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Middleware
         }
     }
 
-    public class ApiGlobalExceptionProblemDetailsOptions
+    public class ProblemDetailsExceptionHandlerOptions
     {
         public Func<HttpContext, bool> showExceptionDetails { get; set; } = ((context) => false);
         public Func<HttpContext, bool> handleException { get; set; } = ((context) => true);

@@ -1,15 +1,15 @@
-﻿using AspNetCore.Mvc.MvcAsApi.Factories;
+﻿using AspNetCore.Mvc.MvcAsApi.Extensions;
+using AspNetCore.Mvc.MvcAsApi.Factories;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.IO;
-using Newtonsoft.Json;
 using System;
-using System.IO;
+using System.Collections.Generic;
 using System.Threading.Tasks;
-using WebApiContrib.Core.Results;
+using static AspNetCore.Mvc.MvcAsApi.Middleware.ProblemDetailsErrorResponseHandlerOptions;
 
 namespace AspNetCore.Mvc.MvcAsApi.Middleware
 {
@@ -53,7 +53,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Middleware
                         //Continue down the Middleware pipeline, eventually returning to this class
                         await _next(context);
 
-                        if (context.Request.HttpContext.Items.ContainsKey("mvcErrorHandled") || !_errorResponseoptions.handleError(context))
+                        if (context.Request.HttpContext.Items.ContainsKey("mvcErrorHandled") || !_errorResponseoptions.HandleError(context, _errorResponseoptions))
                         {
                             await responseBody.CopyToAsync(originalBodyStream).ConfigureAwait(false);
                             return;
@@ -70,7 +70,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Middleware
             {
                 await _next(context);
 
-                if (context.Request.HttpContext.Items.ContainsKey("mvcErrorHandled") || !_errorResponseoptions.handleError(context))
+                if (context.Request.HttpContext.Items.ContainsKey("mvcErrorHandled") || !_errorResponseoptions.HandleError(context, _errorResponseoptions))
                 {
                     return;
                 }
@@ -83,39 +83,15 @@ namespace AspNetCore.Mvc.MvcAsApi.Middleware
                 return;
             }
 
-            var problemDetails = ProblemDetailsFactory.GetProblemDetails(context, "", context.Response.StatusCode, null);
+            ProblemDetailFactory factory = _errorResponseoptions.ProblemDetailFactories.ContainsKey(context.Response.StatusCode) ? _errorResponseoptions.ProblemDetailFactories[context.Response.StatusCode] : _errorResponseoptions.DefaultProblemDetailFactory ?? null;
 
-            if (_options != null && _options.ClientErrorMapping.TryGetValue(context.Response.StatusCode, out var errorData))
+            if(factory != null)
             {
-                problemDetails.Title = errorData.Title;
-                problemDetails.Type = errorData.Link;
-            }
-
-            await WriteResultAsync(context, _options, problemDetails).ConfigureAwait(false);
-        }
-
-        private async Task WriteResultAsync(HttpContext context, ApiBehaviorOptions options, ProblemDetails problemDetails)
-        {
-            if (options != null)
-            {
-                var result = new ObjectResult(problemDetails)
+                var problemDetails = factory(context, _logger);
+                if (problemDetails != null)
                 {
-                    StatusCode = problemDetails.Status,
-                    ContentTypes =
-                            {
-                                "application/problem+json",
-                                "application/problem+xml",
-                            },
-                };
-
-                await context.WriteActionResult(result);
-            }
-            else
-            {
-                var message = JsonConvert.SerializeObject(problemDetails);
-                context.Response.StatusCode = problemDetails.Status.Value;
-                context.Response.ContentType = "application/problem+json";
-                await context.Response.WriteAsync(message).ConfigureAwait(false);
+                    await context.WriteProblemDetailsResultAsync(problemDetails).ConfigureAwait(false);
+                }
             }
         }
     }
@@ -123,6 +99,17 @@ namespace AspNetCore.Mvc.MvcAsApi.Middleware
     public class ProblemDetailsErrorResponseHandlerOptions
     {
         public bool InterceptResponseStream { get; set; } = true;
-        public Func<HttpContext, bool> handleError { get; set; } = ((context) => context.Response.StatusCode >= 400);
+        public Func<HttpContext, ProblemDetailsErrorResponseHandlerOptions, bool> HandleError { get; set; } = ((context, options) => ((context.Response.StatusCode >= 400 && options.DefaultProblemDetailFactory != null) || options.ProblemDetailFactories.ContainsKey(context.Response.StatusCode)));
+
+        public delegate ProblemDetails ProblemDetailFactory(HttpContext context, ILogger logger);
+
+        public ProblemDetailFactory DefaultProblemDetailFactory { get; set; } = ((context, logger) =>
+        {
+            var problemDetails = ProblemDetailsTraceFactory.GetProblemDetails(context, "", context.Response.StatusCode, null);
+            return problemDetails;
+        });
+        public Dictionary<int, ProblemDetailFactory> ProblemDetailFactories { get; set; } = new Dictionary<int, ProblemDetailFactory>() {
+         
+        };
     }
 }

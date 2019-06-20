@@ -11,12 +11,19 @@ namespace AspNetCore.Mvc.MvcAsApi.Conventions
     {
         private readonly bool _applyToMvcActions;
         private readonly bool _applyToApiControllerActions;
-        private readonly Func<IClientErrorActionResult, bool> _handleError;
-        public ApiErrorFilterConvention(bool applyToMvcActions, bool applyToApiControllerActions, Func<IClientErrorActionResult, bool> handleError = null)
+        private readonly Action<ApiErrorFilterOptions> _setupAction;
+
+        public ApiErrorFilterConvention(bool applyToMvcActions, bool applyToApiControllerActions)
+            :this(applyToMvcActions, applyToApiControllerActions, null)
+        {
+
+        }
+
+        public ApiErrorFilterConvention(bool applyToMvcActions, bool applyToApiControllerActions, Action<ApiErrorFilterOptions> setupAction)
         {
             _applyToMvcActions = applyToMvcActions;
             _applyToApiControllerActions = applyToApiControllerActions;
-            _handleError = handleError;
+            _setupAction = setupAction;
         }
 
         public void Apply(ApplicationModel application)
@@ -36,7 +43,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Conventions
 
             if ((isApiController && _applyToApiControllerActions))
             {
-                var apiErrorFilterAttribute = _handleError == null ? new ApiErrorFilterAttribute(true) : new ApiErrorFilterAttribute(true, _handleError);
+                var apiErrorFilterAttribute = new ApiErrorFilterAttribute(true, _setupAction);
 
                 var clientErrorResultFilter = action.Filters.Where(f => f.GetType().Name == "ClientErrorResultFilterFactory").FirstOrDefault();
                 var clientErrorResultFilterIndex = action.Filters.IndexOf(clientErrorResultFilter);
@@ -52,7 +59,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Conventions
             }
             else if((!isApiController && _applyToMvcActions))
             {
-                var apiErrorFilterAttribute = _handleError == null ? new ApiErrorFilterAttribute(false) : new ApiErrorFilterAttribute(false, _handleError);
+                var apiErrorFilterAttribute = new ApiErrorFilterAttribute(false, _setupAction);
                 action.Filters.Insert(0, apiErrorFilterAttribute);
             }
         }

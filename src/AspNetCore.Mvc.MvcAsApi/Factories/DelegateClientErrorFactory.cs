@@ -36,20 +36,13 @@ namespace AspNetCore.Mvc.MvcAsApi.Factories
                 string detail = null;
                 if (clientError is ExceptionResult exceptionResult)
                 {
-                    if (showExceptionDetails(actionContext, exceptionResult.Error))
+                    if (exceptionResult.Error != null && showExceptionDetails(actionContext, exceptionResult.Error))
                     {
                         detail = exceptionResult.Error.ToString();
                     }
                 }
 
-                var problemDetails = ProblemDetailsFactory.GetProblemDetails(actionContext.HttpContext, "", clientError.StatusCode, detail);
-
-                if (clientError.StatusCode is int statusCode &&
-                    apiBehaviorOptions.ClientErrorMapping.TryGetValue(statusCode, out var errorData))
-                {
-                    problemDetails.Title = errorData.Title;
-                    problemDetails.Type = errorData.Link;
-                }
+                var problemDetails = ProblemDetailsTraceFactory.GetProblemDetails(actionContext.HttpContext, "", clientError.StatusCode, detail);
 
                 return new ObjectResult(problemDetails)
                 {

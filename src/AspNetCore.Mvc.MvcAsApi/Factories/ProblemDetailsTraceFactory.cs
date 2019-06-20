@@ -1,17 +1,21 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using System;
 using System.Diagnostics;
 
 namespace AspNetCore.Mvc.MvcAsApi.Factories
 {
-    public static class ProblemDetailsFactory
+    public static class ProblemDetailsTraceFactory
     {
         private static readonly string TraceIdentifierKey = "traceId";
         private static readonly string TimeGeneratedKey = "timeGenerated";
 
         public static ProblemDetails GetProblemDetails(HttpContext httpContext, string title, int? status, string detail = null)
         {
+            var apiBehaviorOptions = httpContext.RequestServices.GetService<IOptions<ApiBehaviorOptions>>()?.Value;
+
             var problemDetails = new ProblemDetails()
             {
                 Type = "about:blank",
@@ -23,6 +27,12 @@ namespace AspNetCore.Mvc.MvcAsApi.Factories
 
             SetTraceId(httpContext, problemDetails);
             SetTimeGenerated(problemDetails);
+
+            if (status is int statusCode && apiBehaviorOptions != null && apiBehaviorOptions.ClientErrorMapping.TryGetValue(statusCode, out var errorData))
+            {
+                problemDetails.Title = errorData.Title;
+                problemDetails.Type = errorData.Link;
+            }
 
             return problemDetails;
         }

@@ -54,6 +54,12 @@ namespace AspNetCore.Mvc.MvcAsApi.Extensions
                 Title = "The request timed out.",
             };
 
+            options.ClientErrorMapping[StatusCodes.Status422UnprocessableEntity] = new ClientErrorData
+            {
+                Link = "https://tools.ietf.org/html/rfc4918#section-11.2",
+                Title = "One or more validation errors occurred.", //Unprocessable Entity
+            };
+
             options.InvalidModelStateResponseFactory = actionContext =>
             {
                 var actionExecutingContext =
@@ -61,6 +67,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Extensions
 
                 var problemDetails = new ValidationProblemDetails(actionContext.ModelState)
                 {
+                    //Title = "One or more validation errors occurred.", Unprocessable Entity
                     Instance = actionContext.HttpContext.Request.Path,
                     Detail = "Please refer to the errors property for additional details."
                 };
@@ -70,15 +77,19 @@ namespace AspNetCore.Mvc.MvcAsApi.Extensions
                 if (actionContext.ModelState.ErrorCount > 0
                     && actionExecutingContext?.ActionArguments.Count == actionContext.ActionDescriptor.Parameters.Count)
                 {
-                    problemDetails.Type = "https://tools.ietf.org/html/rfc4918#section-11.2";
                     problemDetails.Status = StatusCodes.Status422UnprocessableEntity;
                 }
                 else
                 {
                     // if one of the keys wasn't correctly found / couldn't be parsed
                     // we're dealing with null/unparsable input
-                    problemDetails.Type = "https://tools.ietf.org/html/rfc7231#section-6.5.1";
                     problemDetails.Status = StatusCodes.Status400BadRequest;
+                }
+
+                if (problemDetails.Status is int statusCode && options.ClientErrorMapping.TryGetValue(statusCode, out var errorData))
+                {
+                    problemDetails.Title = errorData.Title;
+                    problemDetails.Type = errorData.Link;
                 }
 
                 if (enableAngularErrors)
@@ -110,17 +121,17 @@ namespace AspNetCore.Mvc.MvcAsApi.Extensions
                     problemDetails.Extensions["angularErrors"] = angularErrors;
                 }
 
-                ProblemDetailsFactory.SetTraceId(actionContext.HttpContext, problemDetails);
-                ProblemDetailsFactory.SetTimeGenerated(problemDetails);
+                ProblemDetailsTraceFactory.SetTraceId(actionContext.HttpContext, problemDetails);
+                ProblemDetailsTraceFactory.SetTimeGenerated(problemDetails);
 
                 var result = new ObjectResult(problemDetails)
                 {
                     StatusCode = problemDetails.Status,
                     ContentTypes =
-                            {
-                                "application/problem+json",
-                                "application/problem+xml",
-                            },
+                    {
+                        "application/problem+json",
+                        "application/problem+xml",
+                    },
                 };
 
                 return result;

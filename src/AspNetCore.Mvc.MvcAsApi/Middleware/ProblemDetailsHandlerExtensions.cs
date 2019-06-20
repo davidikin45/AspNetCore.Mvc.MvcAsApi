@@ -1,15 +1,14 @@
-﻿using AspNetCore.Mvc.MvcAsApi.Factories;
+﻿using AspNetCore.Mvc.MvcAsApi.Extensions;
+using AspNetCore.Mvc.MvcAsApi.Factories;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using Newtonsoft.Json;
 using System;
-using System.Threading.Tasks;
-using WebApiContrib.Core.Results;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace AspNetCore.Mvc.MvcAsApi.Middleware
 {
@@ -23,12 +22,12 @@ namespace AspNetCore.Mvc.MvcAsApi.Middleware
                 configureOptions(options);
             }
 
-            return app.UseMiddleware<ProblemDetailsErrorResponseHandlerOptions>(options);
+            return app.UseMiddleware<ProblemDetailsErrorResponseHandlerMiddleware>(options);
         }
 
         public static IApplicationBuilder UseProblemDetailsExceptionHandler(this IApplicationBuilder app, bool showExceptionDetails)
         {
-            return UseProblemDetailsExceptionHandler(app, ((options) => options.showExceptionDetails = ((context) => showExceptionDetails)));
+            return UseProblemDetailsExceptionHandler(app, ((options) => options.ShowExceptionDetails = ((context, exception) => showExceptionDetails)));
         }
 
        public static IApplicationBuilder UseProblemDetailsExceptionHandler(this IApplicationBuilder app, Action<ProblemDetailsExceptionHandlerOptions> configureOptions = null)
@@ -41,93 +40,83 @@ namespace AspNetCore.Mvc.MvcAsApi.Middleware
 
             var loggerFactory = app.ApplicationServices.GetRequiredService<ILoggerFactory>();
 
-            var apiOptions = app.ApplicationServices.GetService<IOptions<ApiBehaviorOptions>>();
-
-            return app.UseExceptionHandler(HandleApiException(loggerFactory, apiOptions?.Value, options));
+            return app.UseExceptionHandler(HandleApiException(loggerFactory, options));
         }
 
-        public static Action<IApplicationBuilder> HandleApiException(ILoggerFactory loggerFactory, ApiBehaviorOptions options, ProblemDetailsExceptionHandlerOptions exceptionOptions)
+        public static Action<IApplicationBuilder> HandleApiException(ILoggerFactory loggerFactory, ProblemDetailsExceptionHandlerOptions exceptionOptions)
         {
             return appBuilder =>
             {
                 appBuilder.Run(async context =>
                 {
-                    if (!exceptionOptions.handleException(context))
+                    var exceptionHandlerFeature = context.Features.Get<IExceptionHandlerFeature>();
+                    var exception = exceptionHandlerFeature?.Error;
+
+                    if (!exceptionOptions.HandleException(context, exceptionOptions, exception))
                     {
                         return;
                     }
 
-                    var exceptionHandlerFeature = context.Features.Get<IExceptionHandlerFeature>();
-
-                    var logger = loggerFactory.CreateLogger("Global Api exception logger");
-
-                    if (exceptionHandlerFeature != null)
+                    bool showExceptionDetails = false;
+                    if(exception != null && exceptionOptions.ShowExceptionDetails(context, exception))
                     {
-                        logger.LogError(exceptionHandlerFeature.Error, "Api error has occured.");
-
-                        bool showException = false;
-                        if(exceptionOptions.showExceptionDetails(context))
-                        {
-                            showException = true;
-                        }
-
-                        var problemDetails = ProblemDetailsFactory.GetProblemDetails(context, "An error has occured.", StatusCodes.Status500InternalServerError, showException ? exceptionHandlerFeature.Error.ToString() : null);
-
-                        if (options != null && options.ClientErrorMapping.TryGetValue(StatusCodes.Status500InternalServerError, out var errorData))
-                        {
-                            problemDetails.Title = errorData.Title;
-                            problemDetails.Type = errorData.Link;
-                        }
-
-                        await WriteResultAsync(context, options, problemDetails).ConfigureAwait(false);
+                        showExceptionDetails = true;
                     }
-                    else
+
+                    var logger = loggerFactory.CreateLogger("ProblemDetailsExceptionHandlerMiddleware");
+
+                    var types = exception == null ? new[] { typeof(Exception) } : exception.GetType().GetTypeAndInterfaceHierarchy();
+                    foreach (var type in types)
                     {
-                        logger.LogError("Api error has occured.");
-
-                        var problemDetails = ProblemDetailsFactory.GetProblemDetails(context, "An error has occured.", StatusCodes.Status500InternalServerError, null);
-
-                        if (options != null && options.ClientErrorMapping.TryGetValue(StatusCodes.Status500InternalServerError, out var errorData))
+                        if (exceptionOptions.ProblemDetailFactories.ContainsKey(type))
                         {
-                            problemDetails.Title = errorData.Title;
-                            problemDetails.Type = errorData.Link;
+                            var factory = exceptionOptions.ProblemDetailFactories[type];
+                            var problemDetails = factory(context, logger, exception, showExceptionDetails);
+                            if(problemDetails != null)
+                            {
+                                await context.WriteProblemDetailsResultAsync(problemDetails).ConfigureAwait(false);
+                            }
+                            return;
+                        }
+                    }
+
+                    if(exceptionOptions.DefaultProblemDetailFactory != null)
+                    {
+                        var problemDetails = exceptionOptions.DefaultProblemDetailFactory(context, logger, exception, showExceptionDetails);
+                        if (problemDetails != null)
+                        {
+                            await context.WriteProblemDetailsResultAsync(problemDetails).ConfigureAwait(false);
                         }
 
-                        await WriteResultAsync(context, options, problemDetails).ConfigureAwait(false);
+                        return;
                     }
                 });
             };
         }
-
-        private static async Task WriteResultAsync(HttpContext context, ApiBehaviorOptions options, ProblemDetails problemDetails)
-        {
-            if(options != null)
-            {
-                var result = new ObjectResult(problemDetails)
-                {
-                    StatusCode = problemDetails.Status,
-                    ContentTypes =
-                            {
-                                "application/problem+json",
-                                "application/problem+xml",
-                            },
-                };
-
-                await context.WriteActionResult(result);
-            }
-            else
-            {
-                var message = JsonConvert.SerializeObject(problemDetails);
-                context.Response.StatusCode = problemDetails.Status.Value;
-                context.Response.ContentType = "application/problem+json";
-                await context.Response.WriteAsync(message).ConfigureAwait(false);
-            }
-        }
     }
+
 
     public class ProblemDetailsExceptionHandlerOptions
     {
-        public Func<HttpContext, bool> showExceptionDetails { get; set; } = ((context) => false);
-        public Func<HttpContext, bool> handleException { get; set; } = ((context) => true);
+        public Func<HttpContext, Exception, bool> ShowExceptionDetails { get; set; } = ((context, exception) => false);
+
+        public Func<HttpContext, ProblemDetailsExceptionHandlerOptions, Exception, bool> HandleException { get; set; } = ((context, options, exception) => options.DefaultProblemDetailFactory != null || exception.GetType().GetTypeAndInterfaceHierarchy().Any(type => options.ProblemDetailFactories.ContainsKey(type)));
+
+        public delegate ProblemDetails ProblemDetailFactory(HttpContext context, ILogger logger, Exception exception, bool showExceptionDetails);
+
+        public ProblemDetailFactory DefaultProblemDetailFactory = ((context, logger, exception, showExceptionDetails) =>
+        {
+            if (exception != null)
+                logger.LogError(exception, "Api error has occured.");
+            else
+                logger.LogError("Api error has occured.");
+
+            var problemDetails = ProblemDetailsTraceFactory.GetProblemDetails(context, "An error has occured.", StatusCodes.Status500InternalServerError, showExceptionDetails ? exception.ToString() : null);
+            return problemDetails;
+        });
+
+        public Dictionary<Type, ProblemDetailFactory> ProblemDetailFactories { get; set; } = new Dictionary<Type, ProblemDetailFactory>() {
+
+        };
     }
 }

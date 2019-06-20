@@ -9,15 +9,19 @@ namespace AspNetCore.Mvc.MvcAsApi.Attributes
     public class ApiErrorFilterAttribute : TypeFilterAttribute
     {
         public ApiErrorFilterAttribute(bool handleBrowserRequests = false)
-            :this(handleBrowserRequests, ((clientError) => clientError.StatusCode >= 400))
+            :this(handleBrowserRequests, null)
         {
 
         }
 
-        public ApiErrorFilterAttribute(bool handleBrowserRequests, Func<IClientErrorActionResult, bool> handleError)
+        public ApiErrorFilterAttribute(bool handleBrowserRequests, Action<ApiErrorFilterOptions> setupAction)
        :base(typeof(ApiErrorFilterImpl))
         {
-            Arguments = new object[] { handleBrowserRequests, handleError };
+            var options = new ApiErrorFilterOptions();
+            if (setupAction != null)
+                setupAction(options);
+
+            Arguments = new object[] { handleBrowserRequests, options};
         }
 
         //https://github.com/aspnet/AspNetCore/blob/c565386a3ed135560bc2e9017aa54a950b4e35dd/src/Mvc/Mvc.Core/src/Infrastructure/ClientErrorResultFilter.cs#L44
@@ -28,7 +32,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Attributes
             internal const int FilterOrder = -2000;
             private readonly IClientErrorFactory _clientErrorFactory;
 
-            private readonly Func<IClientErrorActionResult, bool> _handleError;
+            private readonly ApiErrorFilterOptions _options;
 
             public int Order => FilterOrder;
 
@@ -37,12 +41,12 @@ namespace AspNetCore.Mvc.MvcAsApi.Attributes
                 new EventId(49, "ApiErrorFilterAttribute"),
                 "Replacing {InitialActionResultType} with status code {StatusCode} with {ReplacedActionResultType}.");
 
-            public ApiErrorFilterImpl(IClientErrorFactory clientErrorFactory, ILoggerFactory loggerFactory, bool handleBrowserRequests, Func<IClientErrorActionResult, bool> handleError)
+            public ApiErrorFilterImpl(IClientErrorFactory clientErrorFactory, ILoggerFactory loggerFactory, bool handleBrowserRequests, ApiErrorFilterOptions options)
             {
                 _clientErrorFactory = clientErrorFactory ?? throw new ArgumentNullException(nameof(clientErrorFactory));
                 _logger = loggerFactory.CreateLogger<ApiErrorFilterAttribute>();
                 _handleBrowserRequests = handleBrowserRequests;
-                _handleError = handleError;
+                _options = options;
             }
 
             public void OnResultExecuting(ResultExecutingContext context)
@@ -54,7 +58,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Attributes
 
                 // We do not have an upper bound on the allowed status code. This allows this filter to be used
                 // for 5xx and later status codes.
-                if (!_handleError(clientError))
+                if (!_options.HandleError(clientError))
                 {
                     return;
                 }
@@ -75,5 +79,11 @@ namespace AspNetCore.Mvc.MvcAsApi.Attributes
                
             }
         }
+    }
+
+    public class ApiErrorFilterOptions
+    {
+        public Func<IClientErrorActionResult, bool> HandleError { get; set; } = ((clientError) => clientError.StatusCode >= 400);
+
     }
 }

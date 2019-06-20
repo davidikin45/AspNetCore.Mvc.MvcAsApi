@@ -1,11 +1,8 @@
-﻿using AspNetCore.Mvc.MvcAsApi.ActionResults;
-using Microsoft.AspNetCore.Http;
+﻿using AspNetCore.Mvc.MvcAsApi.Factories;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 using System;
-using AspNetCore.Mvc.MvcAsApi.Factories;
 
 namespace AspNetCore.Mvc.MvcAsApi.Extensions
 {
@@ -23,48 +20,24 @@ namespace AspNetCore.Mvc.MvcAsApi.Extensions
     {
         public static IServiceCollection AddProblemDetailsClientErrorAndExceptionFactory(this IServiceCollection services, bool showExceptionDetails)
         {
-            return AddProblemDetailsClientErrorAndExceptionFactory(services, ((actionContext, exception) => showExceptionDetails));
+            return services.AddProblemDetailsClientErrorAndExceptionFactory(((actionContext, exception) => showExceptionDetails));
         }
 
         public static IServiceCollection AddProblemDetailsClientErrorAndExceptionFactory(this IServiceCollection services, Func<ActionContext, Exception, bool> showExceptionDetails)
         {
-            Func<ApiBehaviorOptions, ActionContext, IClientErrorActionResult, IActionResult> errorAndExceptionResponseFactory = (apiBehaviorOptions, actionContext, clientError) =>
-            {
-                string detail = null;
-                if (clientError is ExceptionResult exceptionResult)
-                {
-                    if (showExceptionDetails != null && showExceptionDetails(actionContext, exceptionResult.Error))
-                    {
-                        detail = exceptionResult.Error.ToString();
-                    }
-                }
-
-                var problemDetails = ProblemDetailsFactory.GetProblemDetails(actionContext.HttpContext, "", clientError.StatusCode, detail);
-
-                if (clientError.StatusCode is int statusCode &&
-                    apiBehaviorOptions.ClientErrorMapping.TryGetValue(statusCode, out var errorData))
-                {
-                    problemDetails.Title = errorData.Title;
-                    problemDetails.Type = errorData.Link;
-                }
-
-                return new ObjectResult(problemDetails)
-                {
-                    StatusCode = problemDetails.Status,
-                    ContentTypes =
-                    {
-                        "application/problem+json",
-                        "application/problem+xml",
-                    },
-                };
-            };
-
-            return AddProblemDetailsClientErrorFactory(services, errorAndExceptionResponseFactory);
+            return services.AddProblemDetailsClientErrorFactory(options => options.ShowExceptionDetails = showExceptionDetails);
         }
 
-        public static IServiceCollection AddProblemDetailsClientErrorFactory(this IServiceCollection services, Func<ApiBehaviorOptions, ActionContext, IClientErrorActionResult, IActionResult> errorAndExceptionResponseFactory)
+        public static IServiceCollection AddProblemDetailsClientErrorFactory(this IServiceCollection services)
         {
-            return services.AddSingleton<IClientErrorFactory>(sp => new DelegateClientErrorFactory(sp.GetRequiredService<IOptions<ApiBehaviorOptions>>(), errorAndExceptionResponseFactory));
+            return services.AddSingleton<IClientErrorFactory, DelegateClientErrorFactory>();
+        }
+
+        public static IServiceCollection AddProblemDetailsClientErrorFactory(this IServiceCollection services, Action<DelegateClientErrorFactoryOptions> setupAction)
+        {
+            services.AddProblemDetailsClientErrorFactory();
+            services.Configure(setupAction);
+            return services;
         }
     }
 }

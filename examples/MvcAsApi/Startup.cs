@@ -35,7 +35,8 @@ namespace MvcAsApi
                 options.MinimumSameSitePolicy = SameSiteMode.None;
             });
 
-            services.AddMvc(options=> {
+            services.AddMvc(options =>
+            {
                 options.ReturnHttpNotAcceptable = true; //If Browser sends Accept not containing */* the server will try to find a formatter that can produce a response in one of the formats specified by the accept header.
                 options.RespectBrowserAcceptHeader = false; //If Browser sends Accept containing */* the server will ignore Accept header and use the first formatter that can format the object.
 
@@ -52,9 +53,10 @@ namespace MvcAsApi
                     //Return data uisng output formatter when acccept header is application/json or application/xml
                     //options.Conventions.Add(new ConvertViewResultToObjectResultConvention());
                 }
-            }).SetCompatibilityVersion(CompatibilityVersion.Version_2_2)
-            //Optional
-            .AddDynamicModelBinder();
+            }).SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
+
+            //Optional           
+            services.AddDynamicModelBinder();
 
             //Optional
             if (HostingEnvironment.IsDevelopment())

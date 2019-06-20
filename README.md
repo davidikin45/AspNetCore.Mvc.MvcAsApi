@@ -108,7 +108,7 @@ public IActionResult ContactMvc([FromBodyAndModelBinding] ContactViewModel viewM
 		//Return data uisng output formatter when acccept header is application/json or application/xml
 		//options.Conventions.Add(new ConvertViewResultToObjectResultConvention());
 	}
-});
+}).SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
 
 //Optional
 if(HostingEnvironment.IsDevelopment())
@@ -162,9 +162,10 @@ public IActionResult ContactMvc(ContactViewModel viewModel)
 		//Return data uisng output formatter when acccept header is application/json or application/xml
 		//options.Conventions.Add(new ConvertViewResultToObjectResultConvention());
 	}
-})
+}).SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
+
 //Optional
-.AddDynamicModelBinder();
+services.AddDynamicModelBinder();
 
 //Optional
 if(HostingEnvironment.IsDevelopment())
@@ -352,8 +353,7 @@ else
 * https://github.com/aspnet/AspNetCore/issues/1748
 * https://stackoverflow.com/questions/9450619/using-dynamic-objects-with-asp-net-mvc-model-binding
 ```
-services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2)
-.AddDynamicModelBinder();
+services.AddDynamicModelBinder();
 			
  public IActionResult Dynamic()
 {
@@ -376,7 +376,7 @@ public IActionResult Dynamic(dynamic contactViewModel)
 ```
 
 ## Invalid Model State
-* I recommend using options.ConfigureProblemDetailsInvalidModelStateFactory() as this adds traceId and timeGenerated to the Invalid Model State Problem Details.
+* I recommend using options.ConfigureProblemDetailsInvalidModelStateFactory() as this adds traceId and timeGenerated to the Invalid Model State Problem Details and also differentiates between 422 and 400 responses. 400 returned if action parameters are missing otherwise 422 returned.
 * Pass true to add angular formatted errors to the Invalid Model State Problem Details also.
 
 ```

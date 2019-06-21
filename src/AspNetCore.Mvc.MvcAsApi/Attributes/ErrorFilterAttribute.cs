@@ -75,7 +75,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Attributes
             internal const int FilterOrder = -2000;
             private readonly IClientErrorFactory _clientErrorFactory;
 
-            private readonly ApiErrorFilterOptions _options;
+            private readonly ErrorFilterOptions _options;
 
             public int Order => FilterOrder;
 
@@ -84,7 +84,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Attributes
                 new EventId(49, "ApiErrorFilterAttribute"),
                 "Replacing {InitialActionResultType} with status code {StatusCode} with {ReplacedActionResultType}.");
 
-            public ErrorFilterImpl(IClientErrorFactory clientErrorFactory, ILoggerFactory loggerFactory, bool handleBrowserRequests, bool handleNonBrowserRequests, ApiErrorFilterOptions options)
+            public ErrorFilterImpl(IClientErrorFactory clientErrorFactory, ILoggerFactory loggerFactory, bool handleBrowserRequests, bool handleNonBrowserRequests, ErrorFilterOptions options)
             {
                 _clientErrorFactory = clientErrorFactory ?? throw new ArgumentNullException(nameof(clientErrorFactory));
                 _logger = loggerFactory.CreateLogger<ErrorFilterAttribute>();
@@ -135,7 +135,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Attributes
 
     public abstract class ErrorFilterOptions
     {
-        public Func<ResultExecutingContext, ApiErrorFilterOptions, IClientErrorActionResult, bool> HandleError { get; set; } = ((context, options, clientError) => ((clientError.StatusCode >= 400 && options.DefaultActionResultFactory != null) || (clientError.StatusCode.HasValue && options.ActionResultFactories.ContainsKey(clientError.StatusCode.Value))));
+        public Func<ResultExecutingContext, ErrorFilterOptions, IClientErrorActionResult, bool> HandleError { get; set; } = ((context, options, clientError) => ((clientError.StatusCode >= 400 && options.DefaultActionResultFactory != null) || (clientError.StatusCode.HasValue && options.ActionResultFactories.ContainsKey(clientError.StatusCode.Value))));
 
         public delegate IActionResult ActionResultFactory(ResultExecutingContext context, ILogger logger, IClientErrorActionResult clientError);
 

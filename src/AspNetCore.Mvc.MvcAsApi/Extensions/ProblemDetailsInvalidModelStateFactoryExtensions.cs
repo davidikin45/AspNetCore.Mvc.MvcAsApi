@@ -147,7 +147,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Extensions
                         "application/problem+xml",
                     },
                 };
-
+                actionContext.HttpContext.Items["mvcErrorHandled"] = true;
                 return result;
             };
         }

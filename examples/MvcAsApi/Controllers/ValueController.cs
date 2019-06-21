@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using MvcAsApi.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,9 +12,9 @@ namespace MvcAsApi.Controllers
     public class ValueController : ControllerBase
     {
 
-        [Route("ErrorResponse")]
+        [Route("")]
         [HttpGet]
-        public IActionResult ErrorResponse()
+        public IActionResult ErrorResponse(ContactViewModel contact)
         {
             return BadRequest();
         }

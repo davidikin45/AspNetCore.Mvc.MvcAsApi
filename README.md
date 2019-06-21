@@ -441,7 +441,7 @@ public IActionResult Dynamic(dynamic contactViewModel)
     },
     "type": "https://tools.ietf.org/html/rfc7231#section-6.5.1",
     "title": "One or more validation errors occurred.",
-    "status": 400,
+    "status": 422,
     "detail": "Please refer to the errors property for additional details.",
     "instance": "/home/contact",
     "traceId": "8000003d-0006-fd00-b63f-84710c7967bb",
@@ -457,11 +457,11 @@ public IActionResult Dynamic(dynamic contactViewModel)
             "The Email field is not a valid e-mail address."
         ]
     },
-    "type": "https://tools.ietf.org/html/rfc7231#section-6.5.1",
+    "type": "https://tools.ietf.org/html/rfc4918#section-11.2",
     "title": "One or more validation errors occurred.",
-    "status": 400,
+    "status": 422,
     "detail": "Please refer to the errors property for additional details.",
-    "instance": "/home/contact",
+    "instance": "/api/values",
     "angularErrors": {
         "Email": [
             {
@@ -470,8 +470,8 @@ public IActionResult Dynamic(dynamic contactViewModel)
             }
         ]
     },
-    "traceId": "80000021-0008-fe00-b63f-84710c7967bb",
-    "timeGenerated": "2019-06-19T18:14:41.6261974Z"
+    "traceId": "80000006-0002-f900-b63f-84710c7967bb",
+    "timeGenerated": "2019-06-21T20:12:37.44671Z"
 }
 ```
 

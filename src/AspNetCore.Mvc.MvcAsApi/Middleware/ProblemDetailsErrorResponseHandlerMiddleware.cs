@@ -9,6 +9,7 @@ using Microsoft.IO;
 using Microsoft.Net.Http.Headers;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading.Tasks;
 using static AspNetCore.Mvc.MvcAsApi.Middleware.ProblemDetailsErrorResponseHandlerOptions;
 
@@ -53,8 +54,9 @@ namespace AspNetCore.Mvc.MvcAsApi.Middleware
                         //Continue down the Middleware pipeline, eventually returning to this class
                         await _next(context);
 
-                        if ((_errorResponseoptions.HandleMvcHandledErrors && context.Request.HttpContext.Items.ContainsKey("mvcErrorHandled")) || !_errorResponseoptions.HandleError(context, _errorResponseoptions))
+                        if ((!_errorResponseoptions.HandleMvcHandledErrors && context.Request.HttpContext.Items.ContainsKey("mvcErrorHandled")) || !_errorResponseoptions.HandleError(context, _errorResponseoptions))
                         {
+                            responseBody.Seek(0, SeekOrigin.Begin);
                             await responseBody.CopyToAsync(originalBodyStream).ConfigureAwait(false);
                             return;
                         }
@@ -70,7 +72,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Middleware
             {
                 await _next(context);
 
-                if ((_errorResponseoptions.HandleMvcHandledErrors && context.Request.HttpContext.Items.ContainsKey("mvcErrorHandled")) || !_errorResponseoptions.HandleError(context, _errorResponseoptions))
+                if ((!_errorResponseoptions.HandleMvcHandledErrors && context.Request.HttpContext.Items.ContainsKey("mvcErrorHandled")) || !_errorResponseoptions.HandleError(context, _errorResponseoptions))
                 {
                     return;
                 }

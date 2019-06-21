@@ -9,6 +9,20 @@ Most useful for the following scenarios:
 4. Used in Production to allow specific Api controller actions to bind to Body + Query/Route.
 5. Used in Production to allow Mvc controller actions to return error responses/exceptions as Problem Details.
 
+## Installation
+
+### NuGet
+```
+PM> Install-Package AspNetCore.Mvc.MvcAsApi
+```
+
+### .Net CLI
+```
+> dotnet add package AspNetCore.Mvc.MvcAsApi
+```
+
+## Usage
+
 Currently to create a controller which handles Api and Mvc requests you would need to write something along the lines of below.
 
 ```

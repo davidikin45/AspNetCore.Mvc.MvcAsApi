@@ -8,21 +8,13 @@ namespace AspNetCore.Mvc.MvcAsApi.Conventions
 {
     public class ApiExceptionFilterConvention : IActionModelConvention, IApplicationModelConvention
     {
-        private readonly bool _applyToMvcActions;
-        private readonly bool _applyToApiControllerActions;
-        private readonly Action<ApiExceptionFilterOptions> _setupAction;
+        private readonly ApiExceptionFilterConventionOptions _options;
 
-        public ApiExceptionFilterConvention(bool applyToMvcActions, bool applyToApiControllerActions)
-            :this(applyToMvcActions, applyToApiControllerActions, null)
+        public ApiExceptionFilterConvention(Action<ApiExceptionFilterConventionOptions> setupAction)
         {
-
-        }
-
-        public ApiExceptionFilterConvention(bool applyToMvcActions, bool applyToApiControllerActions, Action<ApiExceptionFilterOptions> setupAction)
-        {
-            _applyToMvcActions = applyToMvcActions;
-            _applyToApiControllerActions = applyToApiControllerActions;
-            _setupAction = setupAction;
+            _options = new ApiExceptionFilterConventionOptions();
+            if (setupAction != null)
+                setupAction(_options);
         }
 
         public void Apply(ApplicationModel application)
@@ -40,16 +32,23 @@ namespace AspNetCore.Mvc.MvcAsApi.Conventions
         {
             var isApiController = action.Controller.Attributes.OfType<ApiControllerAttribute>().Any();
 
-            if ((isApiController && _applyToApiControllerActions))
+            if ((isApiController && _options.ApplyToApiControllerActions))
             {
-                var apiExceptionFilterAttribute = new ApiExceptionFilterAttribute(true, _setupAction);
+                var apiExceptionFilterAttribute = new ApiExceptionFilterAttribute(true, _options.ApiExceptionOptions);
                 action.Filters.Add(apiExceptionFilterAttribute);
             }
-            else if ((!isApiController && _applyToMvcActions))
+            else if ((!isApiController && _options.ApplyToMvcActions))
             {
-                var apiExceptionFilterAttribute = new ApiExceptionFilterAttribute(false, _setupAction);
+                var apiExceptionFilterAttribute = new ApiExceptionFilterAttribute(false, _options.ApiExceptionOptions);
                 action.Filters.Add(apiExceptionFilterAttribute);
             }
         }
+    }
+
+    public class ApiExceptionFilterConventionOptions
+    {
+        public bool ApplyToMvcActions { get; set; } = true;
+        public bool ApplyToApiControllerActions { get; set; } = true;
+        public Action<ApiExceptionFilterOptions> ApiExceptionOptions { get; set; }
     }
 }

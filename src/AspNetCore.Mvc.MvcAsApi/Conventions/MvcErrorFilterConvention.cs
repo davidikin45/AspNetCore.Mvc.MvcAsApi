@@ -8,18 +8,13 @@ namespace AspNetCore.Mvc.MvcAsApi.Conventions
 {
     public class MvcErrorFilterConvention : IActionModelConvention, IApplicationModelConvention
     {
+        private readonly MvcErrorFilterConventionOptions _options;
 
-        private readonly Action<MvcErrorFilterOptions> _setupAction;
-
-        public MvcErrorFilterConvention()
-            :this(null)
+        public MvcErrorFilterConvention(Action<MvcErrorFilterConventionOptions> setupAction = null)
         {
-
-        }
-
-        public MvcErrorFilterConvention(Action<MvcErrorFilterOptions> setupAction)
-        {
-            _setupAction = setupAction;
+            _options = new MvcErrorFilterConventionOptions();
+            if (setupAction != null)
+                setupAction(_options);
         }
 
         public void Apply(ApplicationModel application)
@@ -39,9 +34,15 @@ namespace AspNetCore.Mvc.MvcAsApi.Conventions
 
             if((!isApiController))
             {
-                var apiErrorFilterAttribute = new MvcErrorFilterAttribute(false, _setupAction);
+                var apiErrorFilterAttribute = new MvcErrorFilterAttribute(_options.HandleNonBrowserRequests, _options.MvcErrorOptions);
                 action.Filters.Insert(0, apiErrorFilterAttribute);
             }
         }
+    }
+
+    public class MvcErrorFilterConventionOptions
+    {
+        public bool HandleNonBrowserRequests { get; set; } = false;
+        public Action<MvcErrorFilterOptions> MvcErrorOptions { get; set; }
     }
 }

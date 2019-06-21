@@ -8,17 +8,13 @@ namespace AspNetCore.Mvc.MvcAsApi.Conventions
 {
     public class MvcExceptionFilterConvention : IActionModelConvention, IApplicationModelConvention
     {
-        private readonly Action<ExceptionFilterOptions> _setupAction;
+        private readonly MvcExceptionFilterConventionOptions _options;
 
-        public MvcExceptionFilterConvention()
-            : this(null)
+        public MvcExceptionFilterConvention(Action<MvcExceptionFilterConventionOptions> setupAction)
         {
-
-        }
-
-        public MvcExceptionFilterConvention(Action<ExceptionFilterOptions> setupAction)
-        {
-            _setupAction = setupAction;
+            _options = new MvcExceptionFilterConventionOptions();
+            if (setupAction != null)
+                setupAction(_options);
         }
 
         public void Apply(ApplicationModel application)
@@ -38,9 +34,15 @@ namespace AspNetCore.Mvc.MvcAsApi.Conventions
 
             if ((!isApiController))
             {
-                var apiExceptionFilterAttribute = new MvcExceptionFilterAttribute(false, _setupAction);
+                var apiExceptionFilterAttribute = new MvcExceptionFilterAttribute(_options.HandleNonBrowserRequests, _options.MvcExceptionOptions);
                 action.Filters.Add(apiExceptionFilterAttribute);
             }
         }
+    }
+
+    public class MvcExceptionFilterConventionOptions
+    {
+        public bool HandleNonBrowserRequests { get; set; } = false;
+        public Action<MvcExceptionFilterOptions> MvcExceptionOptions { get; set; }
     }
 }

@@ -28,11 +28,6 @@ namespace AspNetCore.Mvc.MvcAsApi.Middleware
             return app.UseMiddleware<ProblemDetailsErrorResponseHandlerMiddleware>(options);
         }
 
-        public static IApplicationBuilder UseProblemDetailsExceptionHandler(this IApplicationBuilder app, bool showExceptionDetails)
-        {
-            return UseProblemDetailsExceptionHandler(app, ((options) => options.ShowExceptionDetails = ((context, exception) => showExceptionDetails)));
-        }
-
        public static IApplicationBuilder UseProblemDetailsExceptionHandler(this IApplicationBuilder app, Action<ProblemDetailsExceptionHandlerOptions> configureOptions = null)
         {
             var options = new ProblemDetailsExceptionHandlerOptions();
@@ -62,7 +57,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Middleware
                     }
 
                     bool showExceptionDetails = false;
-                    if(exception != null && exceptionOptions.ShowExceptionDetails(context, exception))
+                    if(exception != null && (exceptionOptions.ShowExceptionDetails || exceptionOptions.ShowExceptionDetailsDelegate(context, exception)))
                     {
                         showExceptionDetails = true;
                     }
@@ -102,7 +97,9 @@ namespace AspNetCore.Mvc.MvcAsApi.Middleware
 
     public class ProblemDetailsExceptionHandlerOptions
     {
-        public Func<HttpContext, Exception, bool> ShowExceptionDetails { get; set; } = ((context, exception) => false);
+        public bool ShowExceptionDetails { get; set; } = false;
+
+        public Func<HttpContext, Exception, bool> ShowExceptionDetailsDelegate { get; set; } = ((context, exception) => false);
 
         public Func<HttpContext, ProblemDetailsExceptionHandlerOptions, Exception, bool> HandleException { get; set; } = ((context, options, exception) => options.DefaultProblemDetailFactory != null || exception.GetType().GetTypeAndInterfaceHierarchy().Any(type => options.ProblemDetailFactories.ContainsKey(type)));
 

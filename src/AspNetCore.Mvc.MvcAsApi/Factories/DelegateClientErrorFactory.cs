@@ -19,27 +19,37 @@ namespace AspNetCore.Mvc.MvcAsApi.Factories
 
         public IActionResult GetClientError(ActionContext actionContext, IClientErrorActionResult clientError)
         {
-            var result = _delegateClientErrorFactoryOptions.ErrorAndExceptionResponseFactory(_options, actionContext, clientError, _delegateClientErrorFactoryOptions.ShowExceptionDetails);
+            bool showExceptionDetails = false;
+            Exception exception = null;
+            if (clientError is ExceptionResult exceptionResult)
+            {
+                exception = exceptionResult.Error;
+                showExceptionDetails = exception != null && _delegateClientErrorFactoryOptions.ShowExceptionDetails || _delegateClientErrorFactoryOptions.ShowExceptionDetailsDelegate(actionContext, exception);
+            }
+
+            var result = _delegateClientErrorFactoryOptions.DefaultErrorAndExceptionResponseFactory(_options, actionContext, clientError, exception, showExceptionDetails);
             if (result != null)
             {
                 actionContext.HttpContext.Items["mvcErrorHandled"] = true;
             }
+
             return result;
         }
     }
 
     public class DelegateClientErrorFactoryOptions
     {
-        public Func<ActionContext, Exception, bool> ShowExceptionDetails { get; set; } = ((actionContext, exception) => false);
-        public Func<ApiBehaviorOptions, ActionContext, IClientErrorActionResult, Func<ActionContext, Exception, bool>, IActionResult> ErrorAndExceptionResponseFactory { get; set; } = (apiBehaviorOptions, actionContext, clientError, showExceptionDetails) =>
+        public bool ShowExceptionDetails { get; set; } = false;
+        public Func<ActionContext, Exception, bool> ShowExceptionDetailsDelegate { get; set; } = ((actionContext, exception) => false);
+
+        public delegate IActionResult ErrorAndExceptionResponseFactoryDelegate(ApiBehaviorOptions coptions, ActionContext actionContext, IClientErrorActionResult clientError, Exception exception, bool showExceptionDetails);
+
+        public ErrorAndExceptionResponseFactoryDelegate DefaultErrorAndExceptionResponseFactory { get; set; } = (apiBehaviorOptions, actionContext, clientError, exception, showExceptionDetails) =>
             {
                 string detail = null;
-                if (clientError is ExceptionResult exceptionResult)
+                if (exception != null && showExceptionDetails)
                 {
-                    if (exceptionResult.Error != null && showExceptionDetails(actionContext, exceptionResult.Error))
-                    {
-                        detail = exceptionResult.Error.ToString();
-                    }
+                    detail = exception.ToString();
                 }
 
                 var problemDetails = ProblemDetailsTraceFactory.GetProblemDetails(actionContext.HttpContext, "", clientError.StatusCode, detail);

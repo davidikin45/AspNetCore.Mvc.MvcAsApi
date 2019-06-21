@@ -62,6 +62,8 @@ public IActionResult ContactApi(ContactViewModel viewModel)
 * This library give thes ability to add attributes/conventions which allow an Mvc controller action to return and accept data as if it were an Api action method. An example of the attributes required can be seen below.
 
 ```
+[MvcExceptionFilter]
+[MvcErrorFilter]
 [ApiExceptionFilter]
 [ApiErrorFilter]
 [ViewResultToObjectResult]
@@ -72,6 +74,8 @@ public IActionResult ContactMvc()
     return View(new ContactViewModel());
 }
 
+[MvcExceptionFilter]
+[MvcErrorFilter]
 [ApiExceptionFilter]
 [ApiErrorFilter]
 [AutoValidateFormAntiForgeryToken]
@@ -89,8 +93,8 @@ public IActionResult ContactMvc([FromBodyAndModelBinding] ContactViewModel viewM
     return View(viewModel);
 }
 ```
-* There are four conventions which add required binding attributes, handle Api Error Responses/Exceptions and switch [ValidateAntiForgeryToken] > [AutoValidateFormAntiForgeryToken]. This ensures AntiForgeryToken still occurs for Mvc but is bypassed for Api requests.
-* The MvcAsApiConvention adds all four conventions in one line of code.
+* There are six conventions which add required binding attributes, handle Api Error Responses/Exceptions, handle Mvc Error Responses/Exceptions and switch [ValidateAntiForgeryToken] > [AutoValidateFormAntiForgeryToken]. This ensures AntiForgeryToken still occurs for Mvc but is bypassed for Api requests.
+* The MvcAsApiConvention adds all six conventions in one line of code.
 
 ```
  services.AddMvc(options =>
@@ -98,15 +102,36 @@ public IActionResult ContactMvc([FromBodyAndModelBinding] ContactViewModel viewM
 	if(HostingEnvironment.IsDevelopment())
 	{
 		options.Conventions.Add(new MvcAsApiConvention());
-	
+	    // OR
+		options.Conventions.Add(new MvcAsApiConvention(o =>
+		{
+			o.MvcErrorOptions = (mvcErrorOptions) => {
+	 
+			};
+			o.MvcExceptionOptions = (mvcExceptionOptions) => {
+
+			};
+			o.ApiErrorOptions = (apiErrorOptions) => {
+
+			};
+			o.ApiExceptionOptions = (apiExceptionOptions) => {
+
+			};
+		}));
+		// OR
+		//Does nothing by default.
+		options.Conventions.Add(new MvcErrorFilterConvention(o => { o.HandleNonBrowserRequests = false; }));
+		//Intercepts OperationCanceledException, all other exceptions are logged/handled by UseExceptionHandler/UseDeveloperExceptionPage.
+		options.Conventions.Add(new MvcExceptionFilterConvention(o => { o.HandleNonBrowserRequests = false; }));
 		//Return problem details in json/xml if an error response is returned via Api.
-		//options.Conventions.Add(new ApiErrorFilterConvention(true, true));
+		options.Conventions.Add(new ApiErrorFilterConvention(o => { o.ApplyToMvcActions = true; o.ApplyToApiControllerActions = true; }));
 		//Return problem details in json/xml if an exception is thrown via Api
-		//options.Conventions.Add(new ApiExceptionFilterConvention(true, true));
-	    //Post data to MVC Controller from API
-		//options.Conventions.Add(new FromBodyAndOtherSourcesConvention(true, true, true));
+		options.Conventions.Add(new ApiExceptionFilterConvention(o => { o.ApplyToMvcActions = true; o.ApplyToApiControllerActions = true; }));
+		//Post data to MVC Controller from API
+		options.Conventions.Add(new FromBodyAndOtherSourcesConvention(o => { o.ApplyToMvcActions = true; o.ApplyToApiControllerActions = true; o.EnableForParametersWithNoBinding = true; o.EnableForParametersWithFormRouteQueryBinding = true; o.ChangeFromBodyBindingsToFromBodyFormAndRouteQueryBinding = true; }));
 		//Return data uisng output formatter when acccept header is application/json or application/xml
-		//options.Conventions.Add(new ConvertViewResultToObjectResultConvention());
+		options.Conventions.Add(new ConvertViewResultToObjectResultConvention(o => { o.ApplyToMvcActions = true; o.ApplyToApiControllerActions = true; }));
+
 	}
 }).SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
 
@@ -152,15 +177,35 @@ public IActionResult ContactMvc(ContactViewModel viewModel)
 	if(HostingEnvironment.IsDevelopment())
 	{
 		options.Conventions.Add(new MvcAsApiConvention());
-	
+		// OR
+		options.Conventions.Add(new MvcAsApiConvention(o =>
+		{
+			o.MvcErrorOptions = (mvcErrorOptions) => {
+	 
+			};
+			o.MvcExceptionOptions = (mvcExceptionOptions) => {
+
+			};
+			o.ApiErrorOptions = (apiErrorOptions) => {
+
+			};
+			o.ApiExceptionOptions = (apiExceptionOptions) => {
+
+			};
+		}));
+		// OR
+		//Does nothing by default.
+		options.Conventions.Add(new MvcErrorFilterConvention(o => { o.HandleNonBrowserRequests = false; }));
+		//Intercepts OperationCanceledException, all other exceptions are logged/handled by UseExceptionHandler/UseDeveloperExceptionPage.
+		options.Conventions.Add(new MvcExceptionFilterConvention(o => { o.HandleNonBrowserRequests = false; }));
 		//Return problem details in json/xml if an error response is returned via Api.
-		//options.Conventions.Add(new ApiErrorFilterConvention(true, true));
+		options.Conventions.Add(new ApiErrorFilterConvention(o => { o.ApplyToMvcActions = true; o.ApplyToApiControllerActions = true; }));
 		//Return problem details in json/xml if an exception is thrown via Api
-		//options.Conventions.Add(new ApiExceptionFilterConvention(true, true));
+		options.Conventions.Add(new ApiExceptionFilterConvention(o => { o.ApplyToMvcActions = true; o.ApplyToApiControllerActions = true; }));
 		//Post data to MVC Controller from API
-		//options.Conventions.Add(new FromBodyAndOtherSourcesConvention(true, true, true));
+		options.Conventions.Add(new FromBodyAndOtherSourcesConvention(o => { o.ApplyToMvcActions = true; o.ApplyToApiControllerActions = true; o.EnableForParametersWithNoBinding = true; o.EnableForParametersWithFormRouteQueryBinding = true; o.ChangeFromBodyBindingsToFromBodyFormAndRouteQueryBinding = true; }));
 		//Return data uisng output formatter when acccept header is application/json or application/xml
-		//options.Conventions.Add(new ConvertViewResultToObjectResultConvention());
+		options.Conventions.Add(new ConvertViewResultToObjectResultConvention(o => { o.ApplyToMvcActions = true; o.ApplyToApiControllerActions = true; }));
 	}
 }).SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
 
@@ -203,7 +248,7 @@ public IActionResult ContactMvc(dynamic viewModel)
 * Api Controller Action error responses (Status Code >= 400) and Exceptions will be handled with these filters. 
 * The [ApiErrorFilterAttribute] is gives similar functionality to the [ClientErrorResultFilter](https://github.com/aspnet/AspNetCore/blob/c565386a3ed135560bc2e9017aa54a950b4e35dd/src/Mvc/Mvc.Core/src/Infrastructure/ClientErrorResultFilter.cs) that is applied when a controller is decorated with [ApiController](https://docs.microsoft.com/en-us/aspnet/core/web-api/?view=aspnetcore-2.2#multipartform-data-request-inference) but gives the ability to pass in a decision delegate.
 * The [ApiExceptionFilterAttribute] allows api exceptions to be handled.
-* The parameter handleBrowserRequests allows the attribute to be used on Mvc actions by passing false and [ApiController] actions by passing true.
+* The [MvcExceptionFilterAttribute] allows browser request exceptions to be handled.
 * For handling 404 and exceptions from other middleware you will need to implement Global Exception Handling. See below.
 * IClientErrorFactory will handle generating the problem details when an Error Response occurs. See default [ProblemDetailsClientErrorFactory](https://github.com/aspnet/AspNetCore/blob/c565386a3ed135560bc2e9017aa54a950b4e35dd/src/Mvc/Mvc.Core/src/Infrastructure/ProblemDetailsClientErrorFactory.cs).
 * An enhanced IClientErrorFactory can be used as this adds traceId, timeGenerated and also handles generating the problem details when an exception is thrown. 
@@ -214,10 +259,13 @@ public IActionResult ContactMvc(dynamic viewModel)
 services.AddProblemDetailsClientErrorAndExceptionFactory(true);
 ```
 
-| Attribute                     | Description                                                                                                                                                                                                                                  |
-|:------------------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| [ApiErrorFilterAttribute]     | Return problem details in json/xml if an error response is returned from Controller Action. The parameter handleBrowserRequests allows the attribute to be used on Mvc actions by passing false and [ApiController] actions by passing true. |
-| [ApiExceptionFilterAttribute] | Converts exception to an Error Response of type ExceptionResult:StatusResult if an exception is thrown from Controller Action. The ApiErrorFilterAttribute can then handle the Error Response. The parameter handleBrowserRequests allows the attribute to be used on Mvc actions by passing false and [ApiController] actions by passing true.        |
+| Attribute                     | Description                                                                                                                                                                                                                                                                                                                                     |
+|:------------------------------|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [ApiErrorFilterAttribute]     | Return problem details in json/xml if an error response is returned from Controller Action. The parameter handleBrowserRequests allows the attribute to be used on Mvc actions by passing false and [ApiController] actions by passing true.                                                                                                    |
+| [ApiExceptionFilterAttribute] | Converts exception to an Error Response of type ExceptionResult:StatusResult if an exception is thrown from Controller Action. The ApiErrorFilterAttribute can then handle the Error Response. The parameter handleBrowserRequests allows the attribute to be used on Mvc actions by passing false and [ApiController] actions by passing true. |
+| [MvcErrorFilterAttribute]     | Does nothing by default. The parameter handleNonBrowserRequests allows the attribute to be used on MvcAsApi actions by passing false and Mvc actions by passing true.                                                                                                                                                                           |
+| [MvcExceptionFilterAttribute] | Intercepts OperationCanceledException and returns 499, all other exceptions are logged/handled by UseExceptionHandler/UseDeveloperExceptionPage.                                                                                                                                                                                                                |
+
 
 * Example Error Response
 ```
@@ -436,16 +484,20 @@ public IActionResult Dynamic(dynamic contactViewModel)
 
 ## Conventions
 
-| Convention                                | Description                                                                                                                                                                                                                       |
-|:------------------------------------------|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| ApiErrorFilterConvention                  | Adds ApiErrorFilterAttribute to Controller Actions.                                                                                                                                                                               |
-| ApiErrorExceptionFilterConvention         | Adds ApiExceptionFilterAttribute to Controller Actions.                                                                                                                                                                           |
-| FromBodyAndOtherSourcesConvention         | Adds required attributes to all Controllers, Actions and Parameters. Good for Development environment. In production only recommending passing true for first argument which applies convention to params with no binding source. |
-| FromBodyOrOtherSourcesConvention          | Adds required attributes to all Controllers, Actions and Parameters. Good for Development environment. In production only recommending passing true for first argument which applies convention to params with no binding source. |
-| ConvertViewResultToObjectResultConvention | Adds ConvertViewResultToObjectResultAttribute to all Controller Actions.                                                                                                                                                          |
-| MvcAsApiConvention                        | Adds ApiErrorFilterConvention, ApiErrorExceptionFilterConvention, FromBodyOrOtherSourcesConvention and ConvertViewResultToObjectResultConvention to all Controller Actions.                                                       |
-                                                                          
+| Convention                                | Description                                                                                                                                                                                                                                                                   |
+|:------------------------------------------|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ApiErrorFilterConvention                  | Adds ApiErrorFilterAttribute to Controller Actions.                                                                                                                                                                                                                           |
+| ApiErrorExceptionFilterConvention         | Adds ApiExceptionFilterAttribute to Controller Actions.                                                                                                                                                                                                                       |
+| MvcErrorFilterConvention                  | Adds MvcErrorFilterAttribute to non [ApiController] Actions.                                                                                                                                                                                                                  |
+| MvcErrorExceptionFilterConvention         | Adds MvcExceptionFilterAttribute to non [ApiController] Actions.                                                                                                                                                                                                              |
+| FromBodyAndOtherSourcesConvention         | Adds required attributes to all Controllers, Actions and Parameters. Good for Development environment. In production only recommending passing true for first argument which applies convention to params with no binding source.                                             |
+| FromBodyOrOtherSourcesConvention          | Adds required attributes to all Controllers, Actions and Parameters. Good for Development environment. In production only recommending passing true for first argument which applies convention to params with no binding source.                                             |
+| ConvertViewResultToObjectResultConvention | Adds ConvertViewResultToObjectResultAttribute to all Controller Actions.                                                                                                                                                                                                      |
+| MvcAsApiConvention                        | Adds ApiErrorFilterConvention, ApiErrorExceptionFilterConvention, FromBodyOrOtherSourcesConvention and ConvertViewResultToObjectResultConvention to all Controller Actions.  Adds MvcErrorFilterConvention, MvcErrorExceptionFilterConvention to non [ApiController] Actions. |
+| MvcConvention                             | Adds MvcErrorFilterConvention, MvcErrorExceptionFilterConvention to non [ApiController] Actions.                                                                                                                                                                              |
+| ApiConvention                             | Adds ApiErrorFilterConvention, ApiErrorExceptionFilterConvention, FromBodyOrOtherSourcesConvention and ConvertViewResultToObjectResultConvention to [ApiController] Actions.                                                                                                  |
 
+                                                                          
 ## Api Response
 * If Accept Header matches OutputFormatter Supported Media Type and the ModelState is Valid, ViewResult is Converted to ObjectResult.
 * If Accept Header matches OutputFormatter Supported Media Type and the ModelState is Valid, ApiBehaviorOptions InvalidModelStateResponseFactory delegate is called which by default returns [ValidationProblemDetails](https://github.com/aspnet/AspNetCore/blob/c565386a3ed135560bc2e9017aa54a950b4e35dd/src/Mvc/Mvc.Core/src/DependencyInjection/ApiBehaviorOptionsSetup.cs). [See web API Documentation](https://docs.microsoft.com/en-us/aspnet/core/web-api/?view=aspnetcore-2.2)

@@ -23,24 +23,15 @@ namespace AspNetCore.Mvc.MvcAsApi.Extensions
     //https://github.com/aspnet/AspNetCore/blob/a8b67a2b98fefedf7de9902f255209110c83c658/src/Middleware/Diagnostics/src/DeveloperExceptionPage/DeveloperExceptionPageMiddleware.cs
     public static class ProblemDetailsClientErrorFactoryExtensions
     {
-        public static IServiceCollection AddProblemDetailsClientErrorAndExceptionFactory(this IServiceCollection services, bool showExceptionDetails)
-        {
-            return services.AddProblemDetailsClientErrorAndExceptionFactory(((actionContext, exception) => showExceptionDetails));
-        }
 
-        public static IServiceCollection AddProblemDetailsClientErrorAndExceptionFactory(this IServiceCollection services, Func<ActionContext, Exception, bool> showExceptionDetails)
-        {
-            return services.AddProblemDetailsClientErrorFactory(options => options.ShowExceptionDetails = showExceptionDetails);
-        }
-
-        public static IServiceCollection AddProblemDetailsClientErrorFactory(this IServiceCollection services)
+        public static IServiceCollection AddProblemDetailsClientErrorAndExceptionFactory(this IServiceCollection services)
         {
             return services.AddSingleton<IClientErrorFactory, DelegateClientErrorFactory>();
         }
 
-        public static IServiceCollection AddProblemDetailsClientErrorFactory(this IServiceCollection services, Action<DelegateClientErrorFactoryOptions> setupAction)
+        public static IServiceCollection AddProblemDetailsClientErrorAndExceptionFactory(this IServiceCollection services, Action<DelegateClientErrorFactoryOptions> setupAction)
         {
-            services.AddProblemDetailsClientErrorFactory();
+            services.AddProblemDetailsClientErrorAndExceptionFactory();
             services.Configure(setupAction);
             return services;
         }

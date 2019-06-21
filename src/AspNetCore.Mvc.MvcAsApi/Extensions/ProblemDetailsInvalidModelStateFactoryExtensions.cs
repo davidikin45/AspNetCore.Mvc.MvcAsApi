@@ -3,6 +3,7 @@ using AspNetCore.Mvc.MvcAsApi.Factories;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -16,16 +17,29 @@ namespace AspNetCore.Mvc.MvcAsApi.Extensions
     //https://github.com/aspnet/AspNetCore/blob/c565386a3ed135560bc2e9017aa54a950b4e35dd/src/Mvc/Mvc.Core/src/Infrastructure/ModelStateInvalidFilter.cs
     public static class ProblemDetailsInvalidModelStateFactoryExtensions
     {
-        public static IServiceCollection ConfigureProblemDetailsInvalidModelStateFactory(this IServiceCollection services, bool enableAngularErrors = false)
+        public static IServiceCollection ConfigureProblemDetailsInvalidModelStateFactory(this IServiceCollection services, Action<ProblemDetailsInvalidModelStateFactoryOptions> setupAction = null)
         {
-            return services.Configure<ApiBehaviorOptions>(options =>
+            var problemDetailsInvalidModelStateFactoryOptions = new ProblemDetailsInvalidModelStateFactoryOptions();
+            if (setupAction != null)
+                setupAction(problemDetailsInvalidModelStateFactoryOptions);
+
+            services.Configure<ApiBehaviorOptions>(options =>
             {
                 //Overrides the default InvalidModelStateResponseFactory, adds traceId and timeGenerated to the ProblemDetails response. 
-                options.ConfigureProblemDetailsInvalidModelStateFactory(enableAngularErrors);
+                options.ConfigureProblemDetailsInvalidModelStateFactory(problemDetailsInvalidModelStateFactoryOptions);
             });
+
+
+            if (problemDetailsInvalidModelStateFactoryOptions.ConfigureApiBehaviorOptions != null)
+            {
+                services.Configure(problemDetailsInvalidModelStateFactoryOptions.ConfigureApiBehaviorOptions);
+            }
+
+            return services;
         }
+
         //Needs to be after AddMvc or use ConfigureApiBehaviourOptions
-        public static void ConfigureProblemDetailsInvalidModelStateFactory(this ApiBehaviorOptions options, bool enableAngularErrors = false)
+        public static void ConfigureProblemDetailsInvalidModelStateFactory(this ApiBehaviorOptions options, ProblemDetailsInvalidModelStateFactoryOptions problemDetailsInvalidModelStateFactoryOptions)
         {
 
             //400
@@ -92,7 +106,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Extensions
                     problemDetails.Type = errorData.Link;
                 }
 
-                if (enableAngularErrors)
+                if (problemDetailsInvalidModelStateFactoryOptions.EnableAngularErrors)
                 {
                     var angularErrors = new SerializableDictionary<string, List<AngularFormattedValidationError>>();
                     foreach (var kvp in problemDetails.Errors)
@@ -138,5 +152,12 @@ namespace AspNetCore.Mvc.MvcAsApi.Extensions
             };
         }
 
+    }
+
+    public class ProblemDetailsInvalidModelStateFactoryOptions
+    {
+        public Action<ApiBehaviorOptions> ConfigureApiBehaviorOptions { get; set; }
+
+        public bool EnableAngularErrors { get; set; } = false;
     }
 }

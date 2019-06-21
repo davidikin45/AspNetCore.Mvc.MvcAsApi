@@ -1,7 +1,6 @@
 ﻿using AspNetCore.Mvc.MvcAsApi.Attributes;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ApplicationModels;
-using Microsoft.AspNetCore.Mvc.Infrastructure;
 using System;
 using System.Linq;
 
@@ -9,21 +8,13 @@ namespace AspNetCore.Mvc.MvcAsApi.Conventions
 {
     public class ApiErrorFilterConvention : IActionModelConvention, IApplicationModelConvention
     {
-        private readonly bool _applyToMvcActions;
-        private readonly bool _applyToApiControllerActions;
-        private readonly Action<ApiErrorFilterOptions> _setupAction;
+        private readonly ApiErrorFilterConventionOptions _options;
 
-        public ApiErrorFilterConvention(bool applyToMvcActions, bool applyToApiControllerActions)
-            :this(applyToMvcActions, applyToApiControllerActions, null)
+        public ApiErrorFilterConvention(Action<ApiErrorFilterConventionOptions> setupAction = null)
         {
-
-        }
-
-        public ApiErrorFilterConvention(bool applyToMvcActions, bool applyToApiControllerActions, Action<ApiErrorFilterOptions> setupAction)
-        {
-            _applyToMvcActions = applyToMvcActions;
-            _applyToApiControllerActions = applyToApiControllerActions;
-            _setupAction = setupAction;
+            _options = new ApiErrorFilterConventionOptions();
+            if (setupAction != null)
+                setupAction(_options);
         }
 
         public void Apply(ApplicationModel application)
@@ -41,9 +32,9 @@ namespace AspNetCore.Mvc.MvcAsApi.Conventions
         {
             var isApiController = action.Controller.Attributes.OfType<ApiControllerAttribute>().Any();
 
-            if ((isApiController && _applyToApiControllerActions))
+            if ((isApiController && _options.ApplyToApiControllerActions))
             {
-                var apiErrorFilterAttribute = new ApiErrorFilterAttribute(true, _setupAction);
+                var apiErrorFilterAttribute = new ApiErrorFilterAttribute(true, _options.ApiErrorOptions);
 
                 var clientErrorResultFilter = action.Filters.Where(f => f.GetType().Name == "ClientErrorResultFilterFactory").FirstOrDefault();
                 var clientErrorResultFilterIndex = action.Filters.IndexOf(clientErrorResultFilter);
@@ -57,11 +48,18 @@ namespace AspNetCore.Mvc.MvcAsApi.Conventions
                     action.Filters.Insert(0, apiErrorFilterAttribute);
                 }
             }
-            else if((!isApiController && _applyToMvcActions))
+            else if((!isApiController && _options.ApplyToMvcActions))
             {
-                var apiErrorFilterAttribute = new ApiErrorFilterAttribute(false, _setupAction);
+                var apiErrorFilterAttribute = new ApiErrorFilterAttribute(false, _options.ApiErrorOptions);
                 action.Filters.Insert(0, apiErrorFilterAttribute);
             }
         }
+    }
+
+    public class ApiErrorFilterConventionOptions
+    {
+        public bool ApplyToMvcActions { get; set; } = true;
+        public bool ApplyToApiControllerActions { get; set; } = true;
+        public Action<ApiErrorFilterOptions> ApiErrorOptions { get; set; }
     }
 }

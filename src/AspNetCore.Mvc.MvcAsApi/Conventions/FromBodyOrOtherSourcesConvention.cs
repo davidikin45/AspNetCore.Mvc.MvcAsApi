@@ -4,32 +4,35 @@ using AspNetCore.Mvc.MvcAsApi.ModelBinding;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ApplicationModels;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using System;
 using System.Linq;
 
 namespace AspNetCore.Mvc.MvcAsApi.Conventions
 {
     public class FromBodyOrOtherSourcesConvention : IParameterModelConvention, IActionModelConvention, IControllerModelConvention, IApplicationModelConvention
     {
-        private readonly bool _enableForParametersWithNoBinding;
-        private readonly bool _enableForParametersWithFormRouteQueryBinding;
-        private readonly bool _changeFromBodyBindingsToFromBodyOrFormRouteQueryBinding;
-
-        public FromBodyOrOtherSourcesConvention(bool enableForParametersWithNoBinding, bool enableForParametersWithFormRouteQueryBinding,  bool changeFromBodyBindingsToFromBodyOrFormRouteQueryBinding)
+        private readonly FromBodyOrOtherSourcesConventionOptions _options;
+        public FromBodyOrOtherSourcesConvention(Action<FromBodyOrOtherSourcesConventionOptions> setupAction = null)
         {
-            _enableForParametersWithNoBinding = enableForParametersWithNoBinding;
-            _enableForParametersWithFormRouteQueryBinding = enableForParametersWithFormRouteQueryBinding;
-            _changeFromBodyBindingsToFromBodyOrFormRouteQueryBinding = changeFromBodyBindingsToFromBodyOrFormRouteQueryBinding;
+            _options = new FromBodyOrOtherSourcesConventionOptions();
+            if (setupAction != null)
+                setupAction(_options);
         }
 
         public void Apply(ApplicationModel application)
         {
-            foreach (var controler in application.Controllers)
+            foreach (var controller in application.Controllers)
             {
-                foreach (var action in controler.Actions)
+                var isApiController = controller.Attributes.OfType<ApiControllerAttribute>().Any();
+
+                if ((isApiController && _options.ApplyToApiControllerActions) || (!isApiController && _options.ApplyToMvcActions))
                 {
-                    foreach (var paramater in action.Parameters)
+                    foreach (var action in controller.Actions)
                     {
-                        Apply(paramater);
+                        foreach (var paramater in action.Parameters)
+                        {
+                            Apply(paramater);
+                        }
                     }
                 }
             }
@@ -37,11 +40,14 @@ namespace AspNetCore.Mvc.MvcAsApi.Conventions
 
         public void Apply(ActionModel action)
         {
-            var antiForgeryTokenFilters = action.Filters.Where(f => f is ValidateAntiForgeryTokenAttribute || f is AutoValidateAntiforgeryTokenAttribute).ToList();
-            if(antiForgeryTokenFilters.Any())
+            if (!action.Filters.OfType<AutoValidateFormAntiforgeryTokenAttribute>().Any())
             {
-                antiForgeryTokenFilters.ForEach(af => action.Filters.Remove(af));
-                action.Filters.Add(new AutoValidateFormAntiforgeryTokenAttribute());
+                var antiForgeryTokenFilters = action.Filters.Where(f => f is ValidateAntiForgeryTokenAttribute || f is AutoValidateAntiforgeryTokenAttribute).ToList();
+                if (antiForgeryTokenFilters.Any())
+                {
+                    antiForgeryTokenFilters.ForEach(af => action.Filters.Remove(af));
+                    action.Filters.Add(new AutoValidateFormAntiforgeryTokenAttribute());
+                }
             }
 
             Apply(action.Controller);
@@ -49,12 +55,14 @@ namespace AspNetCore.Mvc.MvcAsApi.Conventions
 
         public void Apply(ControllerModel controller)
         {
-
-            var antiForgeryTokenFilters = controller.Filters.Where(f => f is ValidateAntiForgeryTokenAttribute || f is AutoValidateAntiforgeryTokenAttribute).ToList();
-            if (antiForgeryTokenFilters.Any())
+            if (!controller.Filters.OfType<AutoValidateFormAntiforgeryTokenAttribute>().Any())
             {
-                antiForgeryTokenFilters.ForEach(af => controller.Filters.Remove(af));
-                controller.Filters.Add(new AutoValidateFormAntiforgeryTokenAttribute());
+                var antiForgeryTokenFilters = controller.Filters.Where(f => f is ValidateAntiForgeryTokenAttribute || f is AutoValidateAntiforgeryTokenAttribute).ToList();
+                if (antiForgeryTokenFilters.Any())
+                {
+                    antiForgeryTokenFilters.ForEach(af => controller.Filters.Remove(af));
+                    controller.Filters.Add(new AutoValidateFormAntiforgeryTokenAttribute());
+                }
             }
         }
 
@@ -64,7 +72,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Conventions
 
             if (parameter.BindingInfo == null)
             {
-                if(_enableForParametersWithNoBinding)
+                if (_options.EnableForParametersWithNoBinding)
                 {
                     parameter.BindingInfo = new BindingInfo();
                     parameter.BindingInfo.BinderType = typeof(BodyOrOtherSourcesModelBinder);
@@ -74,12 +82,12 @@ namespace AspNetCore.Mvc.MvcAsApi.Conventions
             }
             else if (parameter.BindingInfo.BinderType == null && (parameter.BindingInfo.BindingSource == null || parameter.BindingInfo.BindingSource == BindingSource.Form || parameter.BindingInfo.BindingSource == BindingSource.Path || parameter.BindingInfo.BindingSource == BindingSource.Query || parameter.BindingInfo.BindingSource == BindingSource.ModelBinding))
             {
-                if (_enableForParametersWithFormRouteQueryBinding)
+                if (_options.EnableForParametersWithFormRouteQueryBinding)
                 {
 
-                    if(parameter.BindingInfo.BindingSource == BindingSource.Form)
+                    if (parameter.BindingInfo.BindingSource == BindingSource.Form)
                         parameter.BindingInfo.BindingSource = BodyOrBindingSource.BodyOrForm;
-                    else if(parameter.BindingInfo.BindingSource == BindingSource.Path)
+                    else if (parameter.BindingInfo.BindingSource == BindingSource.Path)
                         parameter.BindingInfo.BindingSource = BodyOrBindingSource.BodyOrPath;
                     else if (parameter.BindingInfo.BindingSource == BindingSource.Query)
                         parameter.BindingInfo.BindingSource = BodyOrBindingSource.BodyOrQuery;
@@ -90,10 +98,10 @@ namespace AspNetCore.Mvc.MvcAsApi.Conventions
 
                     Apply(parameter.Action);
                 }
-           }
-            else if(parameter.BindingInfo.BinderType == null && parameter.BindingInfo.BindingSource == BindingSource.Body)
+            }
+            else if (parameter.BindingInfo.BinderType == null && parameter.BindingInfo.BindingSource == BindingSource.Body)
             {
-                if(_changeFromBodyBindingsToFromBodyOrFormRouteQueryBinding)
+                if (_options.ChangeFromBodyBindingsToFromBodyOrFormRouteQueryBinding)
                 {
                     parameter.BindingInfo.BindingSource = BodyOrBindingSource.BodyOrModelBinding;
                     parameter.BindingInfo.BinderType = typeof(BodyOrOtherSourcesModelBinder);
@@ -102,5 +110,15 @@ namespace AspNetCore.Mvc.MvcAsApi.Conventions
                 }
             }
         }
+    }
+
+    public class FromBodyOrOtherSourcesConventionOptions
+    {
+        public bool ApplyToMvcActions { get; set; } = true;
+        public bool ApplyToApiControllerActions { get; set; } = true;
+
+        public bool EnableForParametersWithNoBinding { get; set; } = true;
+        public bool EnableForParametersWithFormRouteQueryBinding { get; set; } = true;
+        public bool ChangeFromBodyBindingsToFromBodyOrFormRouteQueryBinding { get; set; } = true;
     }
 }

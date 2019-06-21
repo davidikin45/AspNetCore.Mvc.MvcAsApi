@@ -1,6 +1,6 @@
 ﻿using AspNetCore.Mvc.MvcAsApi;
 using AspNetCore.Mvc.MvcAsApi.Conventions;
-using AspNetCore.Mvc.MvcAsApi.Factories;
+using AspNetCore.Mvc.MvcAsApi.Extensions;
 using AspNetCore.Mvc.MvcAsApi.Middleware;
 using AspNetCore.Mvc.MvcAsApi.ModelBinding;
 using Microsoft.AspNetCore.Builder;
@@ -9,8 +9,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using AspNetCore.Mvc.MvcAsApi.Extensions;
-using System;
 
 namespace MvcAsApi
 {
@@ -42,17 +40,36 @@ namespace MvcAsApi
 
                 if (HostingEnvironment.IsDevelopment())
                 {
-                    options.Conventions.Add(new MvcAsApiConvention());
-                    options.Conventions.Add(new MvcConvention());
+                    //options.Conventions.Add(new MvcAsApiConvention());
+                    // OR
+                    options.Conventions.Add(new MvcAsApiConvention(o =>
+                    {
+                        o.MvcErrorOptions = (mvcErrorOptions) => {
+                 
+                        };
+                        o.MvcExceptionOptions = (mvcExceptionOptions) => {
 
+                        };
+                        o.ApiErrorOptions = (apiErrorOptions) => {
+
+                        };
+                        o.ApiExceptionOptions = (apiExceptionOptions) => {
+
+                        };
+                    }));
+                    // OR
+                    //Does nothing by default.
+                    //options.Conventions.Add(new MvcErrorFilterConvention(o => { o.HandleNonBrowserRequests = false; }));
+                    //Intercepts OperationCanceledException, all other exceptions are logged/handled by UseExceptionHandler/UseDeveloperExceptionPage.
+                    //options.Conventions.Add(new MvcExceptionFilterConvention(o => { o.HandleNonBrowserRequests = false; }));
                     //Return problem details in json/xml if an error response is returned via Api.
-                    //options.Conventions.Add(new ApiErrorFilterConvention(true, true));
+                    //options.Conventions.Add(new ApiErrorFilterConvention(o => { o.ApplyToMvcActions = true; o.ApplyToApiControllerActions = true; }));
                     //Return problem details in json/xml if an exception is thrown via Api
-                    //options.Conventions.Add(new ApiExceptionFilterConvention(true, true));
+                    //options.Conventions.Add(new ApiExceptionFilterConvention(o => { o.ApplyToMvcActions = true; o.ApplyToApiControllerActions = true; }));
                     //Post data to MVC Controller from API
-                    //options.Conventions.Add(new FromBodyAndOtherSourcesConvention(true, true, true));
+                    //options.Conventions.Add(new FromBodyAndOtherSourcesConvention(o => { o.ApplyToMvcActions = true; o.ApplyToApiControllerActions = true; o.EnableForParametersWithNoBinding = true; o.EnableForParametersWithFormRouteQueryBinding = true; o.ChangeFromBodyBindingsToFromBodyFormAndRouteQueryBinding = true; }));
                     //Return data uisng output formatter when acccept header is application/json or application/xml
-                    //options.Conventions.Add(new ConvertViewResultToObjectResultConvention());
+                    //options.Conventions.Add(new ConvertViewResultToObjectResultConvention(o => { o.ApplyToMvcActions = true; o.ApplyToApiControllerActions = true; }));
                 }
             }).SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
 
@@ -63,9 +80,9 @@ namespace MvcAsApi
             if (HostingEnvironment.IsDevelopment())
             {
                 //Overrides the default IClientErrorFactory implementation which adds traceId, timeGenerated and exception details to the ProblemDetails response.
-                services.AddProblemDetailsClientErrorAndExceptionFactory(true);
+                services.AddProblemDetailsClientErrorAndExceptionFactory(options => options.ShowExceptionDetails = true);
                 //Overrides the default InvalidModelStateResponseFactory, adds traceId and timeGenerated to the ProblemDetails response. 
-                services.ConfigureProblemDetailsInvalidModelStateFactory(true);
+                services.ConfigureProblemDetailsInvalidModelStateFactory(options => options.EnableAngularErrors = true);
             }
         }
 
@@ -86,7 +103,7 @@ namespace MvcAsApi
                 app.UseWhen(context => context.Request.IsApi(),
                    appBranch =>
                    {
-                       appBranch.UseProblemDetailsExceptionHandler(true);
+                       appBranch.UseProblemDetailsExceptionHandler(options => options.ShowExceptionDetails = true);
                         //The global error handler has logic inbuilt so if an error has been handled by MVC Filters it won't try and reprocess. 
                        appBranch.UseProblemDetailsErrorResponseHandler();
                    }
@@ -108,7 +125,7 @@ namespace MvcAsApi
                     app.UseWhen(context => context.Request.IsApi(),
                        appBranch =>
                        {
-                           appBranch.UseProblemDetailsExceptionHandler(false);
+                           appBranch.UseProblemDetailsExceptionHandler(options => options.ShowExceptionDetails = false);
                             //The global error handler has logic inbuilt so if an error has been handled by MVC Filters it won't try and reprocess. 
                             appBranch.UseProblemDetailsErrorResponseHandler();
                        }

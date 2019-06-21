@@ -79,32 +79,23 @@ namespace AspNetCore.Mvc.MvcAsApi.Extensions
                 var actionExecutingContext =
                     actionContext as Microsoft.AspNetCore.Mvc.Filters.ActionExecutingContext;
 
-                var problemDetails = new ValidationProblemDetails(actionContext.ModelState)
-                {
-                    //Title = "One or more validation errors occurred.", Unprocessable Entity
-                    Instance = actionContext.HttpContext.Request.Path,
-                    Detail = "Please refer to the errors property for additional details."
-                };
+                int status;
 
                 // if there are modelstate errors & all keys were correctly
                 // found/parsed we're dealing with validation errors
                 if (actionContext.ModelState.ErrorCount > 0
                     && actionExecutingContext?.ActionArguments.Count == actionContext.ActionDescriptor.Parameters.Count)
                 {
-                    problemDetails.Status = StatusCodes.Status422UnprocessableEntity;
+                    status = StatusCodes.Status422UnprocessableEntity;
                 }
                 else
                 {
                     // if one of the keys wasn't correctly found / couldn't be parsed
                     // we're dealing with null/unparsable input
-                    problemDetails.Status = StatusCodes.Status400BadRequest;
+                    status = StatusCodes.Status400BadRequest;
                 }
 
-                if (problemDetails.Status is int statusCode && options.ClientErrorMapping.TryGetValue(statusCode, out var errorData))
-                {
-                    problemDetails.Title = errorData.Title;
-                    problemDetails.Type = errorData.Link;
-                }
+                var problemDetails = ProblemDetailsTraceFactory.GetValidationProblemDetails(actionContext.HttpContext, actionContext.ModelState, status);
 
                 if (problemDetailsInvalidModelStateFactoryOptions.EnableAngularErrors)
                 {
@@ -135,9 +126,6 @@ namespace AspNetCore.Mvc.MvcAsApi.Extensions
                     problemDetails.Extensions["angularErrors"] = angularErrors;
                 }
 
-                ProblemDetailsTraceFactory.SetTraceId(actionContext.HttpContext, problemDetails);
-                ProblemDetailsTraceFactory.SetTimeGenerated(problemDetails);
-
                 var result = new ObjectResult(problemDetails)
                 {
                     StatusCode = problemDetails.Status,
@@ -147,6 +135,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Extensions
                         "application/problem+xml",
                     },
                 };
+
                 actionContext.HttpContext.Items["mvcErrorHandled"] = true;
                 return result;
             };

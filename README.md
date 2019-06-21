@@ -426,6 +426,7 @@ public IActionResult Dynamic(dynamic contactViewModel)
 ## Invalid Model State
 * I recommend using options.ConfigureProblemDetailsInvalidModelStateFactory() as this adds traceId and timeGenerated to the Invalid Model State Problem Details and also differentiates between 422 and 400 responses. 400 returned if action parameters are missing otherwise 422 returned.
 * Pass true to add angular formatted errors to the Invalid Model State Problem Details also.
+* If using UseProblemDetailsErrorResponseHandler() without ConfigureProblemDetailsInvalidModelStateFactory() set actionContext.HttpContext.Items["mvcErrorHandled"] = true;  within apiBehaviourOptions.InvalidModelStateResponseFactory to prevent the global error handler reprocessing.
 
 ```
  services.ConfigureProblemDetailsInvalidModelStateFactory(true);

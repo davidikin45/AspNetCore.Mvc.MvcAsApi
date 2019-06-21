@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.IO;
+using Microsoft.Net.Http.Headers;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -21,9 +22,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Middleware
         private readonly ApiBehaviorOptions _options;
         private readonly ProblemDetailsErrorResponseHandlerOptions _errorResponseoptions;
         private readonly RecyclableMemoryStreamManager _recyclableMemoryStreamManager;
-
-        private static readonly Action<ILogger, Exception> _responseStartedErrorHandler =
-           LoggerMessage.Define(LogLevel.Warning, new EventId(2, "ResponseStarted"), "The response has already started, the error handler will not be executed.");
+        private readonly Func<object, Task> _clearCacheHeadersDelegate;
 
         public ProblemDetailsErrorResponseHandlerMiddleware(RequestDelegate next, ILogger<ProblemDetailsErrorResponseHandlerMiddleware> logger, IServiceProvider serviceProvider, ProblemDetailsErrorResponseHandlerOptions errorResponseoptions)
         {
@@ -32,6 +31,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Middleware
             _options = serviceProvider.GetService<IOptions<ApiBehaviorOptions>>()?.Value;
             _errorResponseoptions = errorResponseoptions;
             _recyclableMemoryStreamManager = new RecyclableMemoryStreamManager();
+            _clearCacheHeadersDelegate = ClearCacheHeaders;
         }
 
         public async Task InvokeAsync(HttpContext context)
@@ -53,7 +53,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Middleware
                         //Continue down the Middleware pipeline, eventually returning to this class
                         await _next(context);
 
-                        if (context.Request.HttpContext.Items.ContainsKey("mvcErrorHandled") || !_errorResponseoptions.HandleError(context, _errorResponseoptions))
+                        if ((_errorResponseoptions.HandleMvcHandledErrors && context.Request.HttpContext.Items.ContainsKey("mvcErrorHandled")) || !_errorResponseoptions.HandleError(context, _errorResponseoptions))
                         {
                             await responseBody.CopyToAsync(originalBodyStream).ConfigureAwait(false);
                             return;
@@ -70,7 +70,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Middleware
             {
                 await _next(context);
 
-                if (context.Request.HttpContext.Items.ContainsKey("mvcErrorHandled") || !_errorResponseoptions.HandleError(context, _errorResponseoptions))
+                if ((_errorResponseoptions.HandleMvcHandledErrors && context.Request.HttpContext.Items.ContainsKey("mvcErrorHandled")) || !_errorResponseoptions.HandleError(context, _errorResponseoptions))
                 {
                     return;
                 }
@@ -79,25 +79,43 @@ namespace AspNetCore.Mvc.MvcAsApi.Middleware
             if (context.Response.HasStarted)
             {
                 //This is caused by the first write or flush to the response body.
-                _responseStartedErrorHandler(_logger, null);
+                _logger.ResponseStartedErrorHandler();
                 return;
             }
 
             ProblemDetailFactory factory = _errorResponseoptions.ProblemDetailFactories.ContainsKey(context.Response.StatusCode) ? _errorResponseoptions.ProblemDetailFactories[context.Response.StatusCode] : _errorResponseoptions.DefaultProblemDetailFactory ?? null;
 
-            if(factory != null)
+            if(factory == null)
             {
-                var problemDetails = factory(context, _logger);
-                if (problemDetails != null)
-                {
-                    await context.WriteProblemDetailsResultAsync(problemDetails).ConfigureAwait(false);
-                }
+                return;
             }
+
+            var problemDetails = factory(context, _logger);
+            if (problemDetails == null)
+            {
+                return;
+            }
+
+            context.Response.OnStarting(_clearCacheHeadersDelegate, context.Response);
+            _logger.TransformingStatusCodeToProblemDetails(problemDetails.Status);
+
+            await context.WriteProblemDetailsResultAsync(problemDetails).ConfigureAwait(false);
+        }
+
+        private static Task ClearCacheHeaders(object state)
+        {
+            var headers = ((HttpResponse)state).Headers;
+            headers[HeaderNames.CacheControl] = "no-cache";
+            headers[HeaderNames.Pragma] = "no-cache";
+            headers[HeaderNames.Expires] = "-1";
+            headers.Remove(HeaderNames.ETag);
+            return Task.CompletedTask;
         }
     }
 
     public class ProblemDetailsErrorResponseHandlerOptions
     {
+        public bool HandleMvcHandledErrors { get; set; } = false;
         public bool InterceptResponseStream { get; set; } = true;
         public Func<HttpContext, ProblemDetailsErrorResponseHandlerOptions, bool> HandleError { get; set; } = ((context, options) => ((context.Response.StatusCode >= 400 && options.DefaultProblemDetailFactory != null) || options.ProblemDetailFactories.ContainsKey(context.Response.StatusCode)));
 

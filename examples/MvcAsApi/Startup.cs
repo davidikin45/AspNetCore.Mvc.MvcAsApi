@@ -43,6 +43,7 @@ namespace MvcAsApi
                 if (HostingEnvironment.IsDevelopment())
                 {
                     options.Conventions.Add(new MvcAsApiConvention());
+                    options.Conventions.Add(new MvcConvention());
 
                     //Return problem details in json/xml if an error response is returned via Api.
                     //options.Conventions.Add(new ApiErrorFilterConvention(true, true));

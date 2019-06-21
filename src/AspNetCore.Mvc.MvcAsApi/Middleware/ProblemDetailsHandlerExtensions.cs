@@ -12,6 +12,8 @@ using System.Linq;
 
 namespace AspNetCore.Mvc.MvcAsApi.Middleware
 {
+    //https://github.com/aspnet/AspNetCore/blob/bbf7ed290786498e20f7ff6e4f21451fa7d58885/src/Middleware/Diagnostics/src/ExceptionHandler/ExceptionHandlerMiddleware.cs
+
     public static class ProblemDetailsHandlerExtensions
     {
         public static IApplicationBuilder UseProblemDetailsErrorResponseHandler(this IApplicationBuilder app, Action<ProblemDetailsErrorResponseHandlerOptions> configureOptions = null)
@@ -21,6 +23,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Middleware
             {
                 configureOptions(options);
             }
+
 
             return app.UseMiddleware<ProblemDetailsErrorResponseHandlerMiddleware>(options);
         }
@@ -40,10 +43,11 @@ namespace AspNetCore.Mvc.MvcAsApi.Middleware
 
             var loggerFactory = app.ApplicationServices.GetRequiredService<ILoggerFactory>();
 
-            return app.UseExceptionHandler(HandleApiException(loggerFactory, options));
+            //UseExceptionHandler logs error automatically
+            return app.UseExceptionHandler(HandleException(loggerFactory, options));
         }
 
-        public static Action<IApplicationBuilder> HandleApiException(ILoggerFactory loggerFactory, ProblemDetailsExceptionHandlerOptions exceptionOptions)
+        public static Action<IApplicationBuilder> HandleException(ILoggerFactory loggerFactory, ProblemDetailsExceptionHandlerOptions exceptionOptions)
         {
             return appBuilder =>
             {
@@ -63,7 +67,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Middleware
                         showExceptionDetails = true;
                     }
 
-                    var logger = loggerFactory.CreateLogger("ProblemDetailsExceptionHandlerMiddleware");
+                    var logger = loggerFactory.CreateLogger<ExceptionHandlerMiddleware>();
 
                     var types = exception == null ? new[] { typeof(Exception) } : exception.GetType().GetTypeAndInterfaceHierarchy();
                     foreach (var type in types)
@@ -106,11 +110,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Middleware
 
         public ProblemDetailFactory DefaultProblemDetailFactory = ((context, logger, exception, showExceptionDetails) =>
         {
-            if (exception != null)
-                logger.LogError(exception, "Api error has occured.");
-            else
-                logger.LogError("Api error has occured.");
-
+            //UseExceptionHandler logs error automatically
             var problemDetails = ProblemDetailsTraceFactory.GetProblemDetails(context, "An error has occured.", StatusCodes.Status500InternalServerError, showExceptionDetails ? exception.ToString() : null);
             return problemDetails;
         });

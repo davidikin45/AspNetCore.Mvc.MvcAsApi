@@ -105,7 +105,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Attributes
                     if(_options.ActionResultFactories.ContainsKey(type))
                     {
                         var factory = _options.ActionResultFactories[type];
-                        var result = factory(exception, _logger);
+                        var result = factory(context, exception, _logger);
                         if(result != null)
                         {
                             context.Result = result;
@@ -117,7 +117,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Attributes
 
                 if(_options.DefaultActionResultFactory != null)
                 {
-                    var result = _options.DefaultActionResultFactory(exception, _logger);
+                    var result = _options.DefaultActionResultFactory(context, exception, _logger);
                     if (result != null)
                     {
                         context.Result = result;
@@ -131,7 +131,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Attributes
     {
         public Func<ExceptionContext, ExceptionFilterOptions, bool> HandleException { get; set; } = ((context, options) => options.DefaultActionResultFactory != null || context.Exception.GetType().GetTypeAndInterfaceHierarchy().Any(type => options.ActionResultFactories.ContainsKey(type)));
 
-        public delegate IActionResult ExceptionHandler(Exception exception, ILogger logger);
+        public delegate IActionResult ExceptionHandler(ActionContext context, Exception exception, ILogger logger);
 
         public virtual ExceptionHandler DefaultActionResultFactory { get; set; } = null;
         public virtual Dictionary<Type, ExceptionHandler> ActionResultFactories { get; set; } = new Dictionary<Type, ExceptionHandler>() {
@@ -145,7 +145,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Attributes
         public override ExceptionHandler DefaultActionResultFactory { get; set; } = null;
 
         public override Dictionary<Type, ExceptionHandler> ActionResultFactories { get; set; } = new Dictionary<Type, ExceptionHandler>() {
-           {typeof(OperationCanceledException), ((exception, logger) => {
+           {typeof(OperationCanceledException), ((context, exception, logger) => {
                  logger.LogInformation("Request was cancelled.");
                  return new ExceptionResult(exception, 499);
             })}
@@ -154,7 +154,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Attributes
 
     public class ApiExceptionFilterOptions : ExceptionFilterOptions
     {
-        public override ExceptionHandler DefaultActionResultFactory { get; set; } = ((exception, logger) =>
+        public override ExceptionHandler DefaultActionResultFactory { get; set; } = ((context, exception, logger) =>
         {
             //Log and swallow exception.
             logger.UnhandledException(exception);
@@ -162,11 +162,11 @@ namespace AspNetCore.Mvc.MvcAsApi.Attributes
         });
 
         public override Dictionary<Type, ExceptionHandler> ActionResultFactories { get; set; } = new Dictionary<Type, ExceptionHandler>() {
-             {typeof(TimeoutException), ((exception, logger) => {
+             {typeof(TimeoutException), ((context, exception, logger) => {
                  logger.LogInformation("Request timed out.");
                  return new ExceptionResult(exception, StatusCodes.Status504GatewayTimeout);
             })},
-            {typeof(OperationCanceledException), ((exception, logger) => {
+            {typeof(OperationCanceledException), ((context, exception, logger) => {
                   logger.LogInformation("Request was cancelled.");
                  return new ExceptionResult(exception, 499);
             })}

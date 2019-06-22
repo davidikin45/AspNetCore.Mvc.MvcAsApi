@@ -14,7 +14,7 @@ namespace MvcAsApi.Controllers
 
         [Route("")]
         [HttpGet]
-        public IActionResult ErrorResponse(ContactViewModel contact)
+        public IActionResult ErrorResponse()
         {
             return BadRequest();
         }

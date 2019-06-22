@@ -95,36 +95,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Extensions
                     status = StatusCodes.Status400BadRequest;
                 }
 
-                var problemDetails = ProblemDetailsTraceFactory.GetValidationProblemDetails(actionContext.HttpContext, actionContext.ModelState, status);
-
-                if (problemDetailsInvalidModelStateFactoryOptions.EnableAngularErrors)
-                {
-                    var angularErrors = new SerializableDictionary<string, List<AngularFormattedValidationError>>();
-                    foreach (var kvp in problemDetails.Errors)
-                    {
-                        var propertyMessages = new List<AngularFormattedValidationError>();
-                        foreach (var errorMessage in kvp.Value)
-                        {
-                            var keyAndMessage = errorMessage.Split('|');
-                            if (keyAndMessage.Count() > 1)
-                            {
-                                //Formatted for Angular Binding
-                                //e.g required|Error Message
-                                propertyMessages.Add(new AngularFormattedValidationError(
-                                    keyAndMessage[1],
-                                    keyAndMessage[0]));
-                            }
-                            else
-                            {
-                                propertyMessages.Add(new AngularFormattedValidationError(
-                                    keyAndMessage[0]));
-                            }
-                        }
-
-                        angularErrors.Add(kvp.Key, propertyMessages);
-                    }
-                    problemDetails.Extensions["angularErrors"] = angularErrors;
-                }
+                var problemDetails = ProblemDetailsFactory.GetValidationProblemDetails(actionContext.HttpContext, actionContext.ModelState, status, problemDetailsInvalidModelStateFactoryOptions.EnableAngularErrors);
 
                 var result = new ObjectResult(problemDetails)
                 {

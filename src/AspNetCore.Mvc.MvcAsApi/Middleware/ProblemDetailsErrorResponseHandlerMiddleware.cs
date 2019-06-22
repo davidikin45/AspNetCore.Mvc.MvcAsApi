@@ -2,6 +2,7 @@
 using AspNetCore.Mvc.MvcAsApi.Factories;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Formatters.Internal;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -10,6 +11,7 @@ using Microsoft.Net.Http.Headers;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using static AspNetCore.Mvc.MvcAsApi.Middleware.ProblemDetailsErrorResponseHandlerOptions;
 
@@ -54,7 +56,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Middleware
                         //Continue down the Middleware pipeline, eventually returning to this class
                         await _next(context);
 
-                        if ((!_errorResponseoptions.HandleMvcHandledErrors && context.Request.HttpContext.Items.ContainsKey("mvcErrorHandled")) || !_errorResponseoptions.HandleError(context, _errorResponseoptions))
+                        if ((!_errorResponseoptions.HandleProblemDetailResponses && context.Response.ContentType.Contains("application/problem")) || (!_errorResponseoptions.HandleMvcHandledResponses && context.Items.ContainsKey("mvcErrorHandled")) || !_errorResponseoptions.HandleError(context, _errorResponseoptions))
                         {
                             responseBody.Seek(0, SeekOrigin.Begin);
                             await responseBody.CopyToAsync(originalBodyStream).ConfigureAwait(false);
@@ -72,7 +74,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Middleware
             {
                 await _next(context);
 
-                if ((!_errorResponseoptions.HandleMvcHandledErrors && context.Request.HttpContext.Items.ContainsKey("mvcErrorHandled")) || !_errorResponseoptions.HandleError(context, _errorResponseoptions))
+                if ((!_errorResponseoptions.HandleProblemDetailResponses && context.Response.ContentType.Contains("application/problem")) || (!_errorResponseoptions.HandleMvcHandledResponses && context.Items.ContainsKey("mvcErrorHandled")) || !_errorResponseoptions.HandleError(context, _errorResponseoptions))
                 {
                     return;
                 }
@@ -85,7 +87,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Middleware
                 return;
             }
 
-            ProblemDetailFactory factory = _errorResponseoptions.ProblemDetailFactories.ContainsKey(context.Response.StatusCode) ? _errorResponseoptions.ProblemDetailFactories[context.Response.StatusCode] : _errorResponseoptions.DefaultProblemDetailFactory ?? null;
+            var factory = _errorResponseoptions.ProblemDetailFactories.ContainsKey(context.Response.StatusCode) ? _errorResponseoptions.ProblemDetailFactories[context.Response.StatusCode] : _errorResponseoptions.DefaultProblemDetailFactory ?? null;
 
             if(factory == null)
             {
@@ -117,18 +119,19 @@ namespace AspNetCore.Mvc.MvcAsApi.Middleware
 
     public class ProblemDetailsErrorResponseHandlerOptions
     {
-        public bool HandleMvcHandledErrors { get; set; } = false;
+        public bool HandleMvcHandledResponses { get; set; } = false;
+        public bool HandleProblemDetailResponses { get; set; } = false;
         public bool InterceptResponseStream { get; set; } = true;
         public Func<HttpContext, ProblemDetailsErrorResponseHandlerOptions, bool> HandleError { get; set; } = ((context, options) => ((context.Response.StatusCode >= 400 && options.DefaultProblemDetailFactory != null) || options.ProblemDetailFactories.ContainsKey(context.Response.StatusCode)));
 
-        public delegate ProblemDetails ProblemDetailFactory(HttpContext context, ILogger logger);
+        public delegate ProblemDetails ProblemDetailsFactoryDelegate(HttpContext context, ILogger logger);
 
-        public ProblemDetailFactory DefaultProblemDetailFactory { get; set; } = ((context, logger) =>
+        public ProblemDetailsFactoryDelegate DefaultProblemDetailFactory { get; set; } = ((context, logger) =>
         {
-            var problemDetails = ProblemDetailsTraceFactory.GetProblemDetails(context, "", context.Response.StatusCode, null);
+            var problemDetails = ProblemDetailsFactory.GetProblemDetails(context, "", context.Response.StatusCode, null);
             return problemDetails;
         });
-        public Dictionary<int, ProblemDetailFactory> ProblemDetailFactories { get; set; } = new Dictionary<int, ProblemDetailFactory>() {
+        public Dictionary<int, ProblemDetailsFactoryDelegate> ProblemDetailFactories { get; set; } = new Dictionary<int, ProblemDetailsFactoryDelegate>() {
          
         };
     }

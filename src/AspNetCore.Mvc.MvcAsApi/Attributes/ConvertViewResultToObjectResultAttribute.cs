@@ -109,6 +109,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Attributes
             private List<MediaTypeSegmentWithQuality> GetAcceptableMediaTypes(HttpRequest request)
             {
                 var result = new List<MediaTypeSegmentWithQuality>();
+                
                 AcceptHeaderParser.ParseAcceptHeader(request.Headers[HeaderNames.Accept], result);
                 for (var i = 0; i < result.Count; i++)
                 {

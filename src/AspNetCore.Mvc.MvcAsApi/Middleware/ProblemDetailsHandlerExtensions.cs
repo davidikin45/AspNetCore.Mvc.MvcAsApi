@@ -103,16 +103,16 @@ namespace AspNetCore.Mvc.MvcAsApi.Middleware
 
         public Func<HttpContext, ProblemDetailsExceptionHandlerOptions, Exception, bool> HandleException { get; set; } = ((context, options, exception) => options.DefaultProblemDetailFactory != null || exception.GetType().GetTypeAndInterfaceHierarchy().Any(type => options.ProblemDetailFactories.ContainsKey(type)));
 
-        public delegate ProblemDetails ProblemDetailFactory(HttpContext context, ILogger logger, Exception exception, bool showExceptionDetails);
+        public delegate ProblemDetails ProblemDetailsFactoryDelegate(HttpContext context, ILogger logger, Exception exception, bool showExceptionDetails);
 
-        public ProblemDetailFactory DefaultProblemDetailFactory = ((context, logger, exception, showExceptionDetails) =>
+        public ProblemDetailsFactoryDelegate DefaultProblemDetailFactory = ((context, logger, exception, showExceptionDetails) =>
         {
             //UseExceptionHandler logs error automatically
-            var problemDetails = ProblemDetailsTraceFactory.GetProblemDetails(context, "An error has occured.", StatusCodes.Status500InternalServerError, showExceptionDetails ? exception.ToString() : null);
+            var problemDetails = ProblemDetailsFactory.GetProblemDetails(context, "An error has occured.", StatusCodes.Status500InternalServerError, showExceptionDetails ? exception.ToString() : null);
             return problemDetails;
         });
 
-        public Dictionary<Type, ProblemDetailFactory> ProblemDetailFactories { get; set; } = new Dictionary<Type, ProblemDetailFactory>() {
+        public Dictionary<Type, ProblemDetailsFactoryDelegate> ProblemDetailFactories { get; set; } = new Dictionary<Type, ProblemDetailsFactoryDelegate>() {
 
         };
     }

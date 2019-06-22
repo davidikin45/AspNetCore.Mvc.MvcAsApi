@@ -133,10 +133,10 @@ namespace AspNetCore.Mvc.MvcAsApi.Attributes
     {
         public Func<ExceptionContext, ExceptionFilterOptions, bool> HandleException { get; set; } = ((context, options) => options.DefaultActionResultFactory != null || context.Exception.GetType().GetTypeAndInterfaceHierarchy().Any(type => options.ActionResultFactories.ContainsKey(type)));
 
-        public delegate IActionResult ExceptionHandler(ActionContext context, Exception exception, ILogger logger);
+        public delegate IActionResult ExceptionHandlerDelegate(ActionContext context, Exception exception, ILogger logger);
 
-        public virtual ExceptionHandler DefaultActionResultFactory { get; set; } = null;
-        public virtual Dictionary<Type, ExceptionHandler> ActionResultFactories { get; set; } = new Dictionary<Type, ExceptionHandler>() {
+        public virtual ExceptionHandlerDelegate DefaultActionResultFactory { get; set; } = null;
+        public virtual Dictionary<Type, ExceptionHandlerDelegate> ActionResultFactories { get; set; } = new Dictionary<Type, ExceptionHandlerDelegate>() {
  
         };
     }
@@ -144,9 +144,9 @@ namespace AspNetCore.Mvc.MvcAsApi.Attributes
     public class MvcExceptionFilterOptions : ExceptionFilterOptions
     {
         //Let exception flow through to UseExceptionHandler/UseDeveloperExceptionPage where it will be handled/logged.
-        public override ExceptionHandler DefaultActionResultFactory { get; set; } = null;
+        public override ExceptionHandlerDelegate DefaultActionResultFactory { get; set; } = null;
 
-        public override Dictionary<Type, ExceptionHandler> ActionResultFactories { get; set; } = new Dictionary<Type, ExceptionHandler>() {
+        public override Dictionary<Type, ExceptionHandlerDelegate> ActionResultFactories { get; set; } = new Dictionary<Type, ExceptionHandlerDelegate>() {
            {typeof(OperationCanceledException), ((context, exception, logger) => {
                  logger.LogInformation("Request was cancelled.");
                  return new ExceptionResult(exception, 499);
@@ -156,14 +156,14 @@ namespace AspNetCore.Mvc.MvcAsApi.Attributes
 
     public class ApiExceptionFilterOptions : ExceptionFilterOptions
     {
-        public override ExceptionHandler DefaultActionResultFactory { get; set; } = ((context, exception, logger) =>
+        public override ExceptionHandlerDelegate DefaultActionResultFactory { get; set; } = ((context, exception, logger) =>
         {
             //Log and swallow exception.
             logger.UnhandledException(exception);
             return new ExceptionResult(exception, StatusCodes.Status500InternalServerError);
         });
 
-        public override Dictionary<Type, ExceptionHandler> ActionResultFactories { get; set; } = new Dictionary<Type, ExceptionHandler>() {
+        public override Dictionary<Type, ExceptionHandlerDelegate> ActionResultFactories { get; set; } = new Dictionary<Type, ExceptionHandlerDelegate>() {
              {typeof(TimeoutException), ((context, exception, logger) => {
                  logger.LogInformation("Request timed out.");
                  return new ExceptionResult(exception, StatusCodes.Status504GatewayTimeout);

@@ -52,7 +52,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Factories
                     detail = exception.ToString();
                 }
 
-                var problemDetails = ProblemDetailsTraceFactory.GetProblemDetails(actionContext.HttpContext, "", clientError.StatusCode, detail);
+                var problemDetails = ProblemDetailsFactory.GetProblemDetails(actionContext.HttpContext, "", clientError.StatusCode, detail);
 
                 return new ObjectResult(problemDetails)
                 {

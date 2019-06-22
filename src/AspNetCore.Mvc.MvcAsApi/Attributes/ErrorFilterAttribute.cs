@@ -107,7 +107,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Attributes
                     return;
                 }
 
-                ActionResultFactory factory = (clientError.StatusCode.HasValue && _options.ActionResultFactories.ContainsKey(clientError.StatusCode.Value)) ? _options.ActionResultFactories[clientError.StatusCode.Value] : _options.DefaultActionResultFactory ?? null;
+                var factory = (clientError.StatusCode.HasValue && _options.ActionResultFactories.ContainsKey(clientError.StatusCode.Value)) ? _options.ActionResultFactories[clientError.StatusCode.Value] : _options.DefaultActionResultFactory ?? null;
 
                 if (factory == null)
                 {
@@ -137,10 +137,10 @@ namespace AspNetCore.Mvc.MvcAsApi.Attributes
     {
         public Func<ResultExecutingContext, ErrorFilterOptions, IClientErrorActionResult, bool> HandleError { get; set; } = ((context, options, clientError) => ((clientError.StatusCode >= 400 && options.DefaultActionResultFactory != null) || (clientError.StatusCode.HasValue && options.ActionResultFactories.ContainsKey(clientError.StatusCode.Value))));
 
-        public delegate IActionResult ActionResultFactory(ResultExecutingContext context, ILogger logger, IClientErrorActionResult clientError);
+        public delegate IActionResult ActionResultFactoryDelegate(ResultExecutingContext context, ILogger logger, IClientErrorActionResult clientError);
 
-        public virtual ActionResultFactory DefaultActionResultFactory { get; set; } = null;
-        public virtual Dictionary<int, ActionResultFactory> ActionResultFactories { get; set; } = new Dictionary<int, ActionResultFactory>()
+        public virtual ActionResultFactoryDelegate DefaultActionResultFactory { get; set; } = null;
+        public virtual Dictionary<int, ActionResultFactoryDelegate> ActionResultFactories { get; set; } = new Dictionary<int, ActionResultFactoryDelegate>()
         {
 
         };
@@ -153,13 +153,13 @@ namespace AspNetCore.Mvc.MvcAsApi.Attributes
 
     public class ApiErrorFilterOptions : ErrorFilterOptions
     {
-        public override ActionResultFactory DefaultActionResultFactory { get; set; } = ((context, logger, clientError) =>
+        public override ActionResultFactoryDelegate DefaultActionResultFactory { get; set; } = ((context, logger, clientError) =>
         {
             var clientErrorFactory = context.HttpContext.RequestServices.GetService<IClientErrorFactory>();
             return clientErrorFactory.GetClientError(context, clientError);
         });
 
-        public override Dictionary<int, ActionResultFactory> ActionResultFactories { get; set; } = new Dictionary<int, ActionResultFactory>()
+        public override Dictionary<int, ActionResultFactoryDelegate> ActionResultFactories { get; set; } = new Dictionary<int, ActionResultFactoryDelegate>()
         {
 
         };

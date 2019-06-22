@@ -180,7 +180,7 @@ public IActionResult ContactMvc([FromBodyAndModelBinding] ContactViewModel viewM
 //Optional
 if(HostingEnvironment.IsDevelopment())
 {
-	//Api StatusCodeResult Enhanced Problem Details (traceId, timeGenerated, delegate factory)
+    //Api StatusCodeResult Enhanced Problem Details (traceId, timeGenerated, delegate factory)
     services.AddProblemDetailsClientErrorAndExceptionFactory(options => options.ShowExceptionDetails = true);
 
     //Api Invalid ModelState Enhanced Problem Details (traceId, timeGenerated, delegate factory)

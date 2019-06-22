@@ -122,7 +122,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Attributes
 
                 _logger.TransformingClientError(context.Result.GetType(), result?.GetType(), clientError.StatusCode);
 
-                context.HttpContext.Items["mvcErrorHandled"] = true;
+                context.HttpContext.Items["MvcErrorHandled"] = true;
                 context.Result = result;
             }
 

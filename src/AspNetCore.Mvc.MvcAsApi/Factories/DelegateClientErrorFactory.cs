@@ -30,7 +30,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Factories
             var result = _delegateClientErrorFactoryOptions.DefaultErrorAndExceptionResponseFactory(_options, actionContext, clientError, exception, showExceptionDetails);
             if (result != null)
             {
-                actionContext.HttpContext.Items["mvcErrorHandled"] = true;
+                actionContext.HttpContext.Items["MvcErrorHandled"] = true;
             }
 
             return result;

@@ -8,6 +8,7 @@ using Microsoft.Net.Http.Headers;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace AspNetCore.Mvc.MvcAsApi.Middleware
@@ -34,7 +35,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Middleware
 
         public async Task InvokeAsync(HttpContext context)
         {
-            if (_errorResponseoptions.InterceptResponseStream)
+            if (_errorResponseoptions.HandleContentResponses)
             {
                 //Copy a pointer to the original response body stream
                 var originalBodyStream = context.Response.Body;
@@ -133,6 +134,11 @@ namespace AspNetCore.Mvc.MvcAsApi.Middleware
                 return false;
             }
 
+            if(_errorResponseoptions.IgnoreResponsesWithContextItemKeys.Any(key => context.Items.ContainsKey(key)))
+            {
+                return false;
+            }
+
             return true;
         }
 
@@ -149,10 +155,14 @@ namespace AspNetCore.Mvc.MvcAsApi.Middleware
 
     public class ProblemDetailsErrorResponseHandlerOptions
     {
+        public List<string> IgnoreResponsesWithContextItemKeys { get; set; } = new List<string>()
+        {
+            "SkipProblemDetailsErrorResponseHandler"
+        };
+
         public bool HandleNoContentResponses { get; set; } = true;
         public bool HandleContentResponses { get; set; } = false;
         public bool HandleProblemDetailResponses { get; set; } = false;
-        public bool InterceptResponseStream { get; set; } = false;
         public Func<HttpContext, ProblemDetailsErrorResponseHandlerOptions, bool> HandleError { get; set; } = ((context, options) => ((context.Response.StatusCode >= 400 && options.DefaultProblemDetailFactory != null) || options.ProblemDetailFactories.ContainsKey(context.Response.StatusCode)));
 
         public delegate ProblemDetails ProblemDetailsFactoryDelegate(HttpContext context, ILogger logger);

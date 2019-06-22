@@ -23,7 +23,7 @@ PM> Install-Package AspNetCore.Mvc.MvcAsApi
 
 ## Usage
 
-Currently to create a controller which handles Api and Mvc requests you would need to write something along the lines of below.
+* Currently to create a controller which handles Api and Mvc requests you would need to write something along the lines of below.
 
 ```
 [Route("contact")]
@@ -73,7 +73,7 @@ public IActionResult ContactApi(ContactViewModel viewModel)
 }
 ```
 
-* This library give thes ability to add attributes/conventions which allow an Mvc controller action to return and accept data as if it were an Api action method. An example of the attributes required can be seen below.
+* This library give thes ability to add attributes/conventions which allow an Mvc controller action to accpet and return data as if it were an Api action method. An example of the attributes required can be seen below.
 
 ```
 [MvcExceptionFilter]
@@ -108,7 +108,7 @@ public IActionResult ContactMvc([FromBodyAndModelBinding] ContactViewModel viewM
 }
 ```
 * There are six conventions which add required binding attributes, handle Api Error Responses/Exceptions, handle Mvc Error Responses/Exceptions and switch [ValidateAntiForgeryToken] > [AutoValidateFormAntiForgeryToken]. This ensures AntiForgeryToken still occurs for Mvc but is bypassed for Api requests.
-* The MvcAsApiConvention adds all six conventions in one line of code.
+* The MvcAsApiConvention adds all six conventions in one line of code which is useful for Development.
 
 ```
  services.AddMvc(options =>
@@ -116,7 +116,7 @@ public IActionResult ContactMvc([FromBodyAndModelBinding] ContactViewModel viewM
 	if(HostingEnvironment.IsDevelopment())
 	{
 		options.Conventions.Add(new MvcAsApiConvention());
-	    // OR
+		// OR
 		options.Conventions.Add(new MvcAsApiConvention(o =>
 		{
 			o.MvcErrorOptions = (mvcErrorOptions) => {
@@ -153,7 +153,7 @@ public IActionResult ContactMvc([FromBodyAndModelBinding] ContactViewModel viewM
 if(HostingEnvironment.IsDevelopment())
 {
 	//Overrides the default IClientErrorFactory implementation which adds traceId, timeGenerated and exception details to the ProblemDetails response.
-    services.AddProblemDetailsClientErrorAndExceptionFactory(true);
+    services.AddProblemDetailsClientErrorAndExceptionFactory(options => options.ShowExceptionDetails = true);
     //Overrides the default InvalidModelStateResponseFactory, adds traceId and timeGenerated to the ProblemDetails response. 
     services.ConfigureProblemDetailsInvalidModelStateFactory();
 }
@@ -186,54 +186,8 @@ public IActionResult ContactMvc(ContactViewModel viewModel)
 * https://stackoverflow.com/questions/9450619/using-dynamic-objects-with-asp-net-mvc-model-binding
 
 ```
- services.AddMvc(options =>
-{
-	if(HostingEnvironment.IsDevelopment())
-	{
-		options.Conventions.Add(new MvcAsApiConvention());
-		// OR
-		options.Conventions.Add(new MvcAsApiConvention(o =>
-		{
-			o.MvcErrorOptions = (mvcErrorOptions) => {
-	 
-			};
-			o.MvcExceptionOptions = (mvcExceptionOptions) => {
-
-			};
-			o.ApiErrorOptions = (apiErrorOptions) => {
-
-			};
-			o.ApiExceptionOptions = (apiExceptionOptions) => {
-
-			};
-		}));
-		// OR
-		//Does nothing by default.
-		options.Conventions.Add(new MvcErrorFilterConvention(o => { o.HandleNonBrowserRequests = false; }));
-		//Intercepts OperationCanceledException, all other exceptions are logged/handled by UseExceptionHandler/UseDeveloperExceptionPage.
-		options.Conventions.Add(new MvcExceptionFilterConvention(o => { o.HandleNonBrowserRequests = false; }));
-		//Return problem details in json/xml if an error response is returned via Api.
-		options.Conventions.Add(new ApiErrorFilterConvention(o => { o.ApplyToMvcActions = true; o.ApplyToApiControllerActions = true; }));
-		//Return problem details in json/xml if an exception is thrown via Api
-		options.Conventions.Add(new ApiExceptionFilterConvention(o => { o.ApplyToMvcActions = true; o.ApplyToApiControllerActions = true; }));
-		//Post data to MVC Controller from API
-		options.Conventions.Add(new FromBodyAndOtherSourcesConvention(o => { o.ApplyToMvcActions = true; o.ApplyToApiControllerActions = true; o.EnableForParametersWithNoBinding = true; o.EnableForParametersWithFormRouteQueryBinding = true; o.ChangeFromBodyBindingsToFromBodyFormAndRouteQueryBinding = true; }));
-		//Return data uisng output formatter when acccept header is application/json or application/xml
-		options.Conventions.Add(new ConvertViewResultToObjectResultConvention(o => { o.ApplyToMvcActions = true; o.ApplyToApiControllerActions = true; }));
-	}
-}).SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
-
 //Optional
 services.AddDynamicModelBinder();
-
-//Optional
-if(HostingEnvironment.IsDevelopment())
-{
-	//Overrides the default IClientErrorFactory implementation which adds traceId, timeGenerated and exception details to the ProblemDetails response.
-    services.AddProblemDetailsClientErrorAndExceptionFactory(true);
-    //Overrides the default InvalidModelStateResponseFactory, adds traceId and timeGenerated to the ProblemDetails response. 
-    services.ConfigureProblemDetailsInvalidModelStateFactory();
-}
 
 [Route("contact")]
 [HttpGet]
@@ -258,19 +212,41 @@ public IActionResult ContactMvc(dynamic viewModel)
 }
 ```
 
+## Content Negotiation
+* See [Content Negotiation Process documentation](https://docs.microsoft.com/en-us/aspnet/core/web-api/advanced/formatting?view=aspnetcore-2.2)
+* By default MvcOptions.RespectBrowserAcceptHeader is set to false which means when you hit an Api from your web browser and it contains accept header '\*/*' the other accept headers are completely ignored.
+* This library uses the same logic to distinguish Browser and Non-Browser requests in order to return ViewResult (Browser request) or ObjectResult (Non-Browser request).
+* Below is a typical browser request showing that most of the accept headerers are actually ignored.
+
+![alt text](img/content-negotiation.png "Content Negotiation")
+
+```
+ services.AddMvc(options =>
+{	//Default = false. 
+	//If the Request contains Accept header '*/*' the server ignores the Accept headers completely and uses the first output formatter that can format the object (usually json). 
+	//For example when you hit an Api from a web browser.
+	options.RespectBrowserAcceptHeader = false;
+	
+	//Default = false but good practice to set this to true.
+	//If the Request does not contain Accept header '*/*' the server MUST find an output formatter based on accept header otherwise return statuscode 406 Not Acceptable. 
+	//For example when making a json/xml/yaml request from postman. 
+	//If this is left as false and request is sent in with accept header 'application/x-yaml', if the server doesn't have a yaml formatter it would use the first output formatter that can format the object (usually json) which is confusing for the client.
+	options.ReturnHttpNotAcceptable = true;
+}).SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
+```
+
 ## Error Responses (Status Code >= 400) and Exceptions - MVC Filters
 * Api Controller Action error responses (Status Code >= 400) and Exceptions will be handled with these filters. 
 * The [ApiErrorFilterAttribute] is gives similar functionality to the [ClientErrorResultFilter](https://github.com/aspnet/AspNetCore/blob/c565386a3ed135560bc2e9017aa54a950b4e35dd/src/Mvc/Mvc.Core/src/Infrastructure/ClientErrorResultFilter.cs) that is applied when a controller is decorated with [ApiController](https://docs.microsoft.com/en-us/aspnet/core/web-api/?view=aspnetcore-2.2#multipartform-data-request-inference) but gives the ability to pass in a decision delegate.
 * The [ApiExceptionFilterAttribute] allows api exceptions to be handled.
 * The [MvcExceptionFilterAttribute] allows browser request exceptions to be handled.
-* For handling 404 and exceptions from other middleware you will need to implement Global Exception Handling. See below.
+* For handling [404 route not found and exceptions](https://github.com/aspnet/AspNetCore/issues/4953) from other middleware you will need to implement Global Exception Handling. See below.
 * IClientErrorFactory will handle generating the problem details when an Error Response occurs. See default [ProblemDetailsClientErrorFactory](https://github.com/aspnet/AspNetCore/blob/c565386a3ed135560bc2e9017aa54a950b4e35dd/src/Mvc/Mvc.Core/src/Infrastructure/ProblemDetailsClientErrorFactory.cs).
 * An enhanced IClientErrorFactory can be used as this adds traceId, timeGenerated and also handles generating the problem details when an exception is thrown. 
-* services.AddProblemDetailsClientErrorFactory(());
 * Use [ConfigureApiBehaviorOptions to configure problem detail type and title mapping](https://docs.microsoft.com/en-us/aspnet/core/web-api/?view=aspnetcore-2.2).
 
 ```
-services.AddProblemDetailsClientErrorAndExceptionFactory(true);
+services.AddProblemDetailsClientErrorAndExceptionFactory(options => options.ShowExceptionDetails = true);
 ```
 
 | Attribute                     | Description                                                                                                                                                                                                                                                                                                                                     |
@@ -311,8 +287,9 @@ services.AddProblemDetailsClientErrorAndExceptionFactory(true);
 * Usually would use MVC Filters OR Global Error/Exception handling but not both. It will work with both though.
 * Using [WebAPIContrib.Core](https://github.com/WebApiContrib/WebAPIContrib.Core) to allow the use of action results and content negotiation outside of MVC if MVC services are in DI container. Otherwise serialized to json.
 * Use [ConfigureApiBehaviorOptions to configure problem detail type and title mapping](https://docs.microsoft.com/en-us/aspnet/core/web-api/?view=aspnetcore-2.2).
-* The ProblemDetailsErrorResponseHandler by default intercepts the response stream using [RecyclableMemoryStream](https://github.com/microsoft/Microsoft.IO.RecyclableMemoryStream) rather than new MemoryStream() to improve application performance.
-* Set appBranch.UseProblemDetailsErrorResponseHandler(options => options.InterceptResponseStream = false); to not intercept response and only change response if !context.Response.HasStarted.
+* The ProblemDetailsErrorResponseHandler by default only looks at responses with no content-type and no body. If used with Mvc it would only intercept StatusCodeResult but not ObjectResult.
+* There is an option to intercept content responses also but will need to enable option HandleContentResponses which uses a [RecyclableMemoryStream](https://github.com/microsoft/Microsoft.IO.RecyclableMemoryStream) rather than new MemoryStream() to improve application performance.
+* In order to skip the error handler set httpContext.Items["SkipProblemDetailsErrorResponseHandler"] = true; within middleware. 
 
 ```
 if (!env.IsProduction())
@@ -329,8 +306,7 @@ if (!env.IsProduction())
 	 app.UseWhen(context => context.Request.IsApi(),
 		appBranch =>
 		{
-			appBranch.UseProblemDetailsExceptionHandler(true);
-			//The global error handler has logic inbuilt so if an error has been handled by MVC Filters it won't try and reprocess. 
+			appBranch.UseProblemDetailsExceptionHandler(options => options.ShowExceptionDetails = true);
 			appBranch.UseProblemDetailsErrorResponseHandler();
 		}
    );
@@ -351,8 +327,7 @@ else
 	 app.UseWhen(context => context.Request.IsApi(),
 			appBranch =>
 			{
-				appBranch.UseProblemDetailsExceptionHandler(false);
-				//The global error handler has logic inbuilt so if an error has been handled by MVC Filters it won't try and reprocess. 
+				appBranch.UseProblemDetailsExceptionHandler(options => options.ShowExceptionDetails = false);
 				appBranch.UseProblemDetailsErrorResponseHandler();
 			}
 	   );
@@ -439,10 +414,10 @@ public IActionResult Dynamic(dynamic contactViewModel)
 
 ## Invalid Model State
 * I recommend using options.ConfigureProblemDetailsInvalidModelStateFactory() as this adds traceId and timeGenerated to the Invalid Model State Problem Details and also differentiates between 422 and 400 responses. 400 returned if action parameters are missing otherwise 422 returned.
-* Pass true to add angular formatted errors to the Invalid Model State Problem Details also.
+* There is an option to add angular formatted errors to the Invalid Model State Problem Details also.
 
 ```
- services.ConfigureProblemDetailsInvalidModelStateFactory(true);
+ services.ConfigureProblemDetailsInvalidModelStateFactory(options => options.EnableAngularErrors = true);
 ```
 
 * Example invalid ModelState response

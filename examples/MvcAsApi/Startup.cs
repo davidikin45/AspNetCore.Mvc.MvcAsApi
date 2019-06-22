@@ -36,8 +36,16 @@ namespace MvcAsApi
 
             services.AddMvc(options =>
             {
-                options.ReturnHttpNotAcceptable = true; //If Browser sends Accept not containing */* the server will try to find a formatter that can produce a response in one of the formats specified by the accept header.
-                options.RespectBrowserAcceptHeader = false; //If Browser sends Accept containing */* the server will ignore Accept header and use the first formatter that can format the object.
+                //Default = false. 
+                //If the Request contains Accept header '*/*' the server ignores the Accept headers completely and uses the first output formatter that can format the object (usually json). 
+                //For example when you hit an Api from a web browser.
+                options.RespectBrowserAcceptHeader = false;
+
+                //Default = false but good practice to set this to true.
+                //If the Request does not contain Accept header '*/*' the server MUST find an output formatter based on accept header otherwise return statuscode 406 Not Acceptable. 
+                //For example when making a json/xml/yaml request from postman. 
+                //If this is left as false and request is sent in with accept header 'application/x-yaml', if the server doesn't have a yaml formatter it would use the first output formatter that can format the object (usually json) which is confusing for the client.
+                options.ReturnHttpNotAcceptable = true;
 
                 if (HostingEnvironment.IsDevelopment())
                 {

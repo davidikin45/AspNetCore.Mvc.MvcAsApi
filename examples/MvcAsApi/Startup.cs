@@ -82,16 +82,17 @@ namespace MvcAsApi
                 }
             }).SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
 
-            //Optional           
-            services.AddDynamicModelBinder();
-
-            //Optional
+            //Optional - These could be used independently of MvcAsApiConvention
             if (HostingEnvironment.IsDevelopment())
             {
-                //Overrides the default IClientErrorFactory implementation which adds traceId, timeGenerated and exception details to the ProblemDetails response.
-                services.AddProblemDetailsClientErrorAndExceptionFactory(options => options.ShowExceptionDetails = true);
-                //Overrides the default InvalidModelStateResponseFactory, adds traceId and timeGenerated to the ProblemDetails response. 
-                services.ConfigureProblemDetailsInvalidModelStateFactory(options => options.EnableAngularErrors = true);
+                //MVC Dynamic Model Binding
+                services.AddDynamicModelBinder();
+
+                //Api StatusCodeResult Enhanced Problem Details (traceId, timeGenerated, delegate factory)
+                services.AddProblemDetailsClientErrorAndExceptionFactory(options => { options.ShowExceptionDetails = true; });
+
+                //Api Invalid ModelState Enhanced Problem Details (traceId, timeGenerated, delegate factory)
+                services.ConfigureProblemDetailsInvalidModelStateFactory();
             }
         }
 

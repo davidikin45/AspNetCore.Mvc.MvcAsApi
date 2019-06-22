@@ -1,11 +1,8 @@
-﻿using AspNetCore.Mvc.MvcAsApi.ErrorHandling;
-using AspNetCore.Mvc.MvcAsApi.Factories;
+﻿using AspNetCore.Mvc.MvcAsApi.Factories;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace AspNetCore.Mvc.MvcAsApi.Extensions
 {
@@ -74,7 +71,20 @@ namespace AspNetCore.Mvc.MvcAsApi.Extensions
                 Title = "One or more validation errors occurred.", //Unprocessable Entity
             };
 
-            options.InvalidModelStateResponseFactory = actionContext =>
+            options.InvalidModelStateResponseFactory = problemDetailsInvalidModelStateFactoryOptions.InvalidModelStateResponseAbstractFactory(problemDetailsInvalidModelStateFactoryOptions.EnableAngularErrors);
+        }
+
+    }
+
+    public class ProblemDetailsInvalidModelStateFactoryOptions
+    {
+        public Action<ApiBehaviorOptions> ConfigureApiBehaviorOptions { get; set; }
+
+        public bool EnableAngularErrors { get; set; } = false;
+
+        public Func<bool, Func<ActionContext, IActionResult>> InvalidModelStateResponseAbstractFactory { get; set; } = (enableAngularErrors) =>
+        {
+            return (actionContext) =>
             {
                 var actionExecutingContext =
                     actionContext as Microsoft.AspNetCore.Mvc.Filters.ActionExecutingContext;
@@ -95,7 +105,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Extensions
                     status = StatusCodes.Status400BadRequest;
                 }
 
-                var problemDetails = ProblemDetailsFactory.GetValidationProblemDetails(actionContext.HttpContext, actionContext.ModelState, status, problemDetailsInvalidModelStateFactoryOptions.EnableAngularErrors);
+                var problemDetails = ProblemDetailsFactory.GetValidationProblemDetails(actionContext.HttpContext, actionContext.ModelState, status, enableAngularErrors);
 
                 var result = new ObjectResult(problemDetails)
                 {
@@ -110,14 +120,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Extensions
                 actionContext.HttpContext.Items["MvcErrorHandled"] = true;
                 return result;
             };
-        }
-
-    }
-
-    public class ProblemDetailsInvalidModelStateFactoryOptions
-    {
-        public Action<ApiBehaviorOptions> ConfigureApiBehaviorOptions { get; set; }
-
-        public bool EnableAngularErrors { get; set; } = false;
+        };
     }
 }
+

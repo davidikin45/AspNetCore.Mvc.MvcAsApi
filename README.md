@@ -35,11 +35,16 @@ services.AddMvc(options =>
 
 }).SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
 
-//Optional
+//Optional - These could be used independently of MvcAsApiConvention
 if(HostingEnvironment.IsDevelopment())
 {
+    //MVC Dynamic Model Binding
     services.AddDynamicModelBinder();
+
+    //Api StatusCodeResult Enhanced Problem Details (traceId, timeGenerated, delegate factory)
     services.AddProblemDetailsClientErrorAndExceptionFactory(options => options.ShowExceptionDetails = true);
+
+    //Api Invalid ModelState Enhanced Problem Details (traceId, timeGenerated, delegate factory)
     services.ConfigureProblemDetailsInvalidModelStateFactory();
 }
 ```
@@ -175,9 +180,10 @@ public IActionResult ContactMvc([FromBodyAndModelBinding] ContactViewModel viewM
 //Optional
 if(HostingEnvironment.IsDevelopment())
 {
-	//Overrides the default IClientErrorFactory implementation which adds traceId, timeGenerated and exception details to the ProblemDetails response.
+	//Api StatusCodeResult Enhanced Problem Details (traceId, timeGenerated, delegate factory)
     services.AddProblemDetailsClientErrorAndExceptionFactory(options => options.ShowExceptionDetails = true);
-    //Overrides the default InvalidModelStateResponseFactory, adds traceId and timeGenerated to the ProblemDetails response. 
+
+    //Api Invalid ModelState Enhanced Problem Details (traceId, timeGenerated, delegate factory)
     services.ConfigureProblemDetailsInvalidModelStateFactory();
 }
 
@@ -529,3 +535,4 @@ This project is licensed under the MIT License
 
 * [HybridModelBinding](https://github.com/billbogaiv/hybrid-model-binding)
 * [Hellang.Middleware.ProblemDetails](https://github.com/khellang/Middleware)
+* [RFC 7807 - Problem Details for HTTP APIs](https://tools.ietf.org/html/rfc7807)

@@ -56,13 +56,20 @@ namespace AspNetCore.Mvc.MvcAsApi.Middleware
                         return;
                     }
 
+                    var logger = loggerFactory.CreateLogger<ExceptionHandlerMiddleware>();
+
                     bool showExceptionDetails = false;
                     if(exception != null && (exceptionOptions.ShowExceptionDetails || exceptionOptions.ShowExceptionDetailsDelegate(context, exception)))
                     {
                         showExceptionDetails = true;
                     }
 
-                    var logger = loggerFactory.CreateLogger<ExceptionHandlerMiddleware>();
+                    if (exception != null && exception is ProblemDetailsException ex)
+                    {
+                        // The user has already provided a valid problem details object.
+                        await context.WriteProblemDetailsResultAsync(ex.ProblemDetails).ConfigureAwait(false);
+                        return;
+                    }
 
                     var types = exception == null ? new[] { typeof(Exception) } : exception.GetType().GetTypeAndInterfaceHierarchy();
                     foreach (var type in types)
@@ -107,6 +114,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Middleware
 
         public ProblemDetailsFactoryDelegate DefaultProblemDetailFactory = ((context, logger, exception, showExceptionDetails) =>
         {
+
             //UseExceptionHandler logs error automatically
             var problemDetails = ProblemDetailsFactory.GetProblemDetails(context, "An error has occured.", StatusCodes.Status500InternalServerError, showExceptionDetails ? exception.ToString() : null);
             return problemDetails;

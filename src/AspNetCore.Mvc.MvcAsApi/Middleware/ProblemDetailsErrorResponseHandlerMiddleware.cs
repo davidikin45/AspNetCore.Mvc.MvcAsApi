@@ -2,27 +2,23 @@
 using AspNetCore.Mvc.MvcAsApi.Factories;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Formatters.Internal;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Microsoft.IO;
 using Microsoft.Net.Http.Headers;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Threading.Tasks;
-using static AspNetCore.Mvc.MvcAsApi.Middleware.ProblemDetailsErrorResponseHandlerOptions;
 
 namespace AspNetCore.Mvc.MvcAsApi.Middleware
 {
+    //https://github.com/khellang/Middleware/blob/master/src/ProblemDetails/ProblemDetailsMiddleware.cs
+    //shttps://github.com/aspnet/AspNetCore/blob/bbf7ed290786498e20f7ff6e4f21451fa7d58885/src/Middleware/Diagnostics/src/ExceptionHandler/ExceptionHandlerMiddleware.cs
     public class ProblemDetailsErrorResponseHandlerMiddleware
     {
         private readonly RequestDelegate _next;
 
         private readonly ILogger _logger;
-        private readonly ApiBehaviorOptions _options;
         private readonly ProblemDetailsErrorResponseHandlerOptions _errorResponseoptions;
         private readonly RecyclableMemoryStreamManager _recyclableMemoryStreamManager;
         private readonly Func<object, Task> _clearCacheHeadersDelegate;
@@ -31,15 +27,14 @@ namespace AspNetCore.Mvc.MvcAsApi.Middleware
         {
             _next = next;
             _logger = logger;
-            _options = serviceProvider.GetService<IOptions<ApiBehaviorOptions>>()?.Value;
             _errorResponseoptions = errorResponseoptions;
             _recyclableMemoryStreamManager = new RecyclableMemoryStreamManager();
-            _clearCacheHeadersDelegate = ClearCacheHeaders;
+            _clearCacheHeadersDelegate = OnResponseStarting;
         }
 
         public async Task InvokeAsync(HttpContext context)
         {
-            if(_errorResponseoptions.InterceptResponseStream)
+            if (_errorResponseoptions.InterceptResponseStream)
             {
                 //Copy a pointer to the original response body stream
                 var originalBodyStream = context.Response.Body;
@@ -56,13 +51,12 @@ namespace AspNetCore.Mvc.MvcAsApi.Middleware
                         //Continue down the Middleware pipeline, eventually returning to this class
                         await _next(context);
 
-                        if ((!_errorResponseoptions.HandleProblemDetailResponses && context.Response.ContentType.Contains("application/problem")) || (!_errorResponseoptions.HandleMvcHandledResponses && context.Items.ContainsKey("mvcErrorHandled")) || !_errorResponseoptions.HandleError(context, _errorResponseoptions))
+                        if (!HandleResponse(context))
                         {
                             responseBody.Seek(0, SeekOrigin.Begin);
                             await responseBody.CopyToAsync(originalBodyStream).ConfigureAwait(false);
                             return;
                         }
-
                     }
                 }
                 finally
@@ -72,9 +66,12 @@ namespace AspNetCore.Mvc.MvcAsApi.Middleware
             }
             else
             {
+
                 await _next(context);
 
-                if ((!_errorResponseoptions.HandleProblemDetailResponses && context.Response.ContentType.Contains("application/problem")) || (!_errorResponseoptions.HandleMvcHandledResponses && context.Items.ContainsKey("mvcErrorHandled")) || !_errorResponseoptions.HandleError(context, _errorResponseoptions))
+                //response has now been written to body
+
+                if (!HandleResponse(context))
                 {
                     return;
                 }
@@ -89,7 +86,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Middleware
 
             var factory = _errorResponseoptions.ProblemDetailFactories.ContainsKey(context.Response.StatusCode) ? _errorResponseoptions.ProblemDetailFactories[context.Response.StatusCode] : _errorResponseoptions.DefaultProblemDetailFactory ?? null;
 
-            if(factory == null)
+            if (factory == null)
             {
                 return;
             }
@@ -100,16 +97,49 @@ namespace AspNetCore.Mvc.MvcAsApi.Middleware
                 return;
             }
 
+            //clear response
+            var statusCode = context.Response.StatusCode;
+            context.Response.Clear();
+            context.Response.StatusCode = statusCode;
+
             context.Response.OnStarting(_clearCacheHeadersDelegate, context.Response);
+
             _logger.TransformingStatusCodeToProblemDetails(problemDetails.Status);
 
+            //write problem details
             await context.WriteProblemDetailsResultAsync(problemDetails).ConfigureAwait(false);
         }
 
-        private static Task ClearCacheHeaders(object state)
+        private bool HandleResponse(HttpContext context)
+        {
+            if (!string.IsNullOrEmpty(context.Response.ContentType) && context.Response.ContentType.Contains("application/problem"))
+            {
+                if (!_errorResponseoptions.HandleProblemDetailResponses)
+                {
+                    return false;
+                }
+            }
+            else if (!_errorResponseoptions.HandleContentResponses && (!string.IsNullOrEmpty(context.Response.ContentType) || context.Response.ContentLength.HasValue))
+            {
+                return false;
+            }
+            else if (!_errorResponseoptions.HandleNoContentResponses && string.IsNullOrEmpty(context.Response.ContentType))
+            {
+                return false;
+            }
+
+            if (!_errorResponseoptions.HandleError(context, _errorResponseoptions))
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        private static Task OnResponseStarting(object state)
         {
             var headers = ((HttpResponse)state).Headers;
-            headers[HeaderNames.CacheControl] = "no-cache";
+            headers[HeaderNames.CacheControl] = "no-cache, no-store, must-revalidate";
             headers[HeaderNames.Pragma] = "no-cache";
             headers[HeaderNames.Expires] = "-1";
             headers.Remove(HeaderNames.ETag);
@@ -119,9 +149,10 @@ namespace AspNetCore.Mvc.MvcAsApi.Middleware
 
     public class ProblemDetailsErrorResponseHandlerOptions
     {
-        public bool HandleMvcHandledResponses { get; set; } = false;
+        public bool HandleNoContentResponses { get; set; } = true;
+        public bool HandleContentResponses { get; set; } = false;
         public bool HandleProblemDetailResponses { get; set; } = false;
-        public bool InterceptResponseStream { get; set; } = true;
+        public bool InterceptResponseStream { get; set; } = false;
         public Func<HttpContext, ProblemDetailsErrorResponseHandlerOptions, bool> HandleError { get; set; } = ((context, options) => ((context.Response.StatusCode >= 400 && options.DefaultProblemDetailFactory != null) || options.ProblemDetailFactories.ContainsKey(context.Response.StatusCode)));
 
         public delegate ProblemDetails ProblemDetailsFactoryDelegate(HttpContext context, ILogger logger);
@@ -131,8 +162,9 @@ namespace AspNetCore.Mvc.MvcAsApi.Middleware
             var problemDetails = ProblemDetailsFactory.GetProblemDetails(context, "", context.Response.StatusCode, null);
             return problemDetails;
         });
-        public Dictionary<int, ProblemDetailsFactoryDelegate> ProblemDetailFactories { get; set; } = new Dictionary<int, ProblemDetailsFactoryDelegate>() {
-         
+        public Dictionary<int, ProblemDetailsFactoryDelegate> ProblemDetailFactories { get; set; } = new Dictionary<int, ProblemDetailsFactoryDelegate>()
+        {
+
         };
     }
 }

@@ -108,6 +108,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Attributes
                         var result = factory(context, exception, _logger);
                         if(result != null)
                         {
+                            context.ExceptionHandled = true;
                             context.Result = result;
                         }
 
@@ -120,6 +121,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Attributes
                     var result = _options.DefaultActionResultFactory(context, exception, _logger);
                     if (result != null)
                     {
+                        context.ExceptionHandled = true;
                         context.Result = result;
                     }
                 }

@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 namespace AspNetCore.Mvc.MvcAsApi.Middleware
 {
     //https://github.com/khellang/Middleware/blob/master/src/ProblemDetails/ProblemDetailsMiddleware.cs
-    //shttps://github.com/aspnet/AspNetCore/blob/bbf7ed290786498e20f7ff6e4f21451fa7d58885/src/Middleware/Diagnostics/src/ExceptionHandler/ExceptionHandlerMiddleware.cs
+    //https://github.com/aspnet/AspNetCore/blob/bbf7ed290786498e20f7ff6e4f21451fa7d58885/src/Middleware/Diagnostics/src/ExceptionHandler/ExceptionHandlerMiddleware.cs
     public class ProblemDetailsErrorResponseHandlerMiddleware
     {
         private readonly RequestDelegate _next;

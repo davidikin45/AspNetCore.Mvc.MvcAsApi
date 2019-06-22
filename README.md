@@ -21,6 +21,29 @@ PM> Install-Package AspNetCore.Mvc.MvcAsApi
 > dotnet add package AspNetCore.Mvc.MvcAsApi
 ```
 
+## Quick Start
+```
+services.AddMvc(options =>
+{
+    options.RespectBrowserAcceptHeader = false;
+    options.ReturnHttpNotAcceptable = true;
+
+    if(HostingEnvironment.IsDevelopment())
+    {
+        options.Conventions.Add(new MvcAsApiConvention());
+    }
+
+}).SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
+
+//Optional
+if(HostingEnvironment.IsDevelopment())
+{
+    services.AddDynamicModelBinder();
+    services.AddProblemDetailsClientErrorAndExceptionFactory(options => options.ShowExceptionDetails = true);
+    services.ConfigureProblemDetailsInvalidModelStateFactory();
+}
+```
+
 ## Usage
 
 * Currently to create a controller which handles Api and Mvc requests you would need to write something along the lines of below.
@@ -501,3 +524,8 @@ public IActionResult Dynamic(dynamic contactViewModel)
 ## License
 
 This project is licensed under the MIT License
+
+## Acknowledgments
+
+* [HybridModelBinding](https://github.com/billbogaiv/hybrid-model-binding)
+* [Hellang.Middleware.ProblemDetails](https://github.com/khellang/Middleware)

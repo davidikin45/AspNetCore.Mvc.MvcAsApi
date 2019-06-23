@@ -34,7 +34,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Conventions
 
             if ((isApiController && _options.ApplyToApiControllerActions))
             {
-                var apiErrorFilterAttribute = new ApiErrorFilterAttribute(true, _options.ApiErrorOptions);
+                var apiErrorFilterAttribute = new ApiErrorFilterAttribute(_options.ApiErrorOptions);
 
                 var clientErrorResultFilter = action.Filters.Where(f => f.GetType().Name == "ClientErrorResultFilterFactory").FirstOrDefault();
                 var clientErrorResultFilterIndex = action.Filters.IndexOf(clientErrorResultFilter);
@@ -50,7 +50,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Conventions
             }
             else if((!isApiController && _options.ApplyToMvcActions))
             {
-                var apiErrorFilterAttribute = new ApiErrorFilterAttribute(false, _options.ApiErrorOptions);
+                var apiErrorFilterAttribute = new ApiErrorFilterAttribute(_options.ApiErrorOptions);
                 action.Filters.Insert(0, apiErrorFilterAttribute);
             }
         }

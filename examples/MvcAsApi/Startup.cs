@@ -69,9 +69,9 @@ namespace MvcAsApi
                     }));
                     // OR
                     //Does nothing by default.
-                    //options.Conventions.Add(new MvcErrorFilterConvention(o => { o.HandleNonBrowserRequests = false; }));
+                    //options.Conventions.Add(new MvcErrorFilterConvention(o => { options.ApplyToMvcActions = true; options.ApplyToApiControllerActions = true; }));
                     //Intercepts OperationCanceledException, all other exceptions are logged/handled by UseExceptionHandler/UseDeveloperExceptionPage.
-                    //options.Conventions.Add(new MvcExceptionFilterConvention(o => { o.HandleNonBrowserRequests = false; }));
+                    //options.Conventions.Add(new MvcExceptionFilterConvention(o => {options.ApplyToMvcActions = true; options.ApplyToApiControllerActions = true; }));
                     //Return problem details in json/xml if an error response is returned via Api.
                     //options.Conventions.Add(new ApiErrorFilterConvention(o => { o.ApplyToMvcActions = true; o.ApplyToApiControllerActions = true; }));
                     //Return problem details in json/xml if an exception is thrown via Api

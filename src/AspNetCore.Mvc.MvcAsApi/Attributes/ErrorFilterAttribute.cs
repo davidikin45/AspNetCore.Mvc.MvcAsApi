@@ -11,14 +11,14 @@ namespace AspNetCore.Mvc.MvcAsApi.Attributes
 {
     public class ApiErrorFilterAttribute : ErrorFilterAttribute
     {
-        public ApiErrorFilterAttribute(bool handleBrowserRequests = false)
-         : this(handleBrowserRequests, null)
+        public ApiErrorFilterAttribute()
+         : this(null)
         {
 
         }
 
-        public ApiErrorFilterAttribute(bool handleBrowserRequests, Action<ApiErrorFilterOptions> setupAction)
-        : base(handleBrowserRequests, true, ConfigureOptions(setupAction))
+        public ApiErrorFilterAttribute(Action<ApiErrorFilterOptions> setupAction)
+        : base(false, true, ConfigureOptions(setupAction))
         {
 
         }
@@ -35,14 +35,14 @@ namespace AspNetCore.Mvc.MvcAsApi.Attributes
 
     public class MvcErrorFilterAttribute : ErrorFilterAttribute
     {
-        public MvcErrorFilterAttribute(bool handleNonBrowserRequests = false)
-         : this(handleNonBrowserRequests, null)
+        public MvcErrorFilterAttribute()
+         : this(null)
         {
 
         }
 
-        public MvcErrorFilterAttribute(bool handleNonBrowserRequests, Action<MvcErrorFilterOptions> setupAction)
-        : base(true, handleNonBrowserRequests, ConfigureOptions(setupAction))
+        public MvcErrorFilterAttribute(Action<MvcErrorFilterOptions> setupAction)
+        : base(true, false, ConfigureOptions(setupAction))
         {
 
         }
@@ -59,17 +59,17 @@ namespace AspNetCore.Mvc.MvcAsApi.Attributes
 
     public abstract class ErrorFilterAttribute : TypeFilterAttribute
     {
-        public ErrorFilterAttribute(bool handleBrowserRequests, bool handleNonBrowserRequests, ErrorFilterOptions options)
+        public ErrorFilterAttribute(bool handleMvcRequests, bool handleApiRequests, ErrorFilterOptions options)
        :base(typeof(ErrorFilterImpl))
         {
-            Arguments = new object[] { handleBrowserRequests, handleNonBrowserRequests, options};
+            Arguments = new object[] { handleMvcRequests, handleApiRequests, options};
         }
 
         //https://github.com/aspnet/AspNetCore/blob/c565386a3ed135560bc2e9017aa54a950b4e35dd/src/Mvc/Mvc.Core/src/Infrastructure/ClientErrorResultFilter.cs#L44
         private class ErrorFilterImpl : IAlwaysRunResultFilter, IOrderedFilter
         {
-            private readonly bool _handleBrowserRequests;
-            private readonly bool _handleNonBrowserRequests;
+            private readonly bool _handleMvcRequests;
+            private readonly bool _handleApiRequests;
             private readonly ILogger _logger;
             internal const int FilterOrder = -2000;
             private readonly IClientErrorFactory _clientErrorFactory;
@@ -78,23 +78,18 @@ namespace AspNetCore.Mvc.MvcAsApi.Attributes
 
             public int Order => FilterOrder;
 
-            private static readonly Action<ILogger, Type, int?, Type, Exception> _transformingClientError = LoggerMessage.Define<Type, int?, Type>(
-               LogLevel.Trace,
-                new EventId(49, "ApiErrorFilterAttribute"),
-                "Replacing {InitialActionResultType} with status code {StatusCode} with {ReplacedActionResultType}.");
-
-            public ErrorFilterImpl(IClientErrorFactory clientErrorFactory, ILoggerFactory loggerFactory, bool handleBrowserRequests, bool handleNonBrowserRequests, ErrorFilterOptions options)
+            public ErrorFilterImpl(IClientErrorFactory clientErrorFactory, ILoggerFactory loggerFactory, bool handleMvcRequests, bool handleApiRequests, ErrorFilterOptions options)
             {
                 _clientErrorFactory = clientErrorFactory ?? throw new ArgumentNullException(nameof(clientErrorFactory));
                 _logger = loggerFactory.CreateLogger<ErrorFilterAttribute>();
-                _handleBrowserRequests = handleBrowserRequests;
-                _handleNonBrowserRequests = handleNonBrowserRequests;
+                _handleMvcRequests = handleMvcRequests;
+                _handleApiRequests = handleApiRequests;
                 _options = options;
             }
 
             public void OnResultExecuting(ResultExecutingContext context)
             {
-                if ((!_handleBrowserRequests && context.HttpContext.Request.IsBrowser()) || (!_handleNonBrowserRequests && !context.HttpContext.Request.IsBrowser()) ||!(context.Result is IClientErrorActionResult clientError))
+                if ((!_handleMvcRequests && context.HttpContext.Request.IsMvc()) || (!_handleApiRequests && context.HttpContext.Request.IsApi()) ||!(context.Result is IClientErrorActionResult clientError))
                 {
                     return;
                 }

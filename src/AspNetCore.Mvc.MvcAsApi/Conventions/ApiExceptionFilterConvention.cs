@@ -34,12 +34,12 @@ namespace AspNetCore.Mvc.MvcAsApi.Conventions
 
             if ((isApiController && _options.ApplyToApiControllerActions))
             {
-                var apiExceptionFilterAttribute = new ApiExceptionFilterAttribute(true, _options.ApiExceptionOptions);
+                var apiExceptionFilterAttribute = new ApiExceptionFilterAttribute(_options.ApiExceptionOptions);
                 action.Filters.Add(apiExceptionFilterAttribute);
             }
             else if ((!isApiController && _options.ApplyToMvcActions))
             {
-                var apiExceptionFilterAttribute = new ApiExceptionFilterAttribute(false, _options.ApiExceptionOptions);
+                var apiExceptionFilterAttribute = new ApiExceptionFilterAttribute(_options.ApiExceptionOptions);
                 action.Filters.Add(apiExceptionFilterAttribute);
             }
         }

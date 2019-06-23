@@ -113,6 +113,17 @@ namespace AspNetCore.Mvc.MvcAsApi
                      return true;
                  }
              }
+             else
+             {
+                 var result = new List<MediaTypeSegmentWithQuality>();
+
+                 AcceptHeaderParser.ParseAcceptHeader(context.Request.Headers[HeaderNames.Accept], result);
+
+                 if (result.Count == 1 && result[0].MediaType == "text/html")
+                 {
+                     return true;
+                 }
+             }
 
              //otherwise we aren't from browser.
              return false;

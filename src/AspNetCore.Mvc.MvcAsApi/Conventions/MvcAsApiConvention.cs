@@ -15,26 +15,29 @@ namespace AspNetCore.Mvc.MvcAsApi.Conventions
                 setupAction(_options);
         }
 
-
         public void Apply(ApplicationModel application)
         {
             //Does nothing by default.
-            new MvcErrorFilterConvention(options => { options.HandleNonBrowserRequests = false; options.MvcErrorOptions = _options.MvcErrorOptions; }).Apply(application);
+            new MvcErrorFilterConvention(options => { options.ApplyToMvcActions = _options.ApplyToMvcActions; options.ApplyToApiControllerActions = _options.ApplyToApiControllerActions; options.MvcErrorOptions = _options.MvcErrorOptions; }).Apply(application);
             //Intercepts OperationCanceledException, all other exceptions are logged/handled by UseExceptionHandler/UseDeveloperExceptionPage.
-            new MvcExceptionFilterConvention(options => { options.HandleNonBrowserRequests = false; options.MvcExceptionOptions = _options.MvcExceptionOptions; }).Apply(application);
+            new MvcExceptionFilterConvention(options => { options.ApplyToMvcActions = _options.ApplyToMvcActions; options.ApplyToApiControllerActions = _options.ApplyToApiControllerActions; options.MvcExceptionOptions = _options.MvcExceptionOptions; }).Apply(application);
             //Return problem details in json/xml if an error response is returned via Api.
-            new ApiErrorFilterConvention(options => { options.ApplyToMvcActions = true; options.ApplyToApiControllerActions = true;  options.ApiErrorOptions = _options.ApiErrorOptions; }).Apply(application);
+            new ApiErrorFilterConvention(options => { options.ApplyToMvcActions = _options.ApplyToMvcActions; options.ApplyToApiControllerActions = _options.ApplyToApiControllerActions;  options.ApiErrorOptions = _options.ApiErrorOptions; }).Apply(application);
             //Return problem details in json/xml if an exception is thrown via Api
-            new ApiExceptionFilterConvention(options => { options.ApplyToMvcActions = true; options.ApplyToApiControllerActions = true; options.ApiExceptionOptions = _options.ApiExceptionOptions; }).Apply(application);
+            new ApiExceptionFilterConvention(options => { options.ApplyToMvcActions = _options.ApplyToMvcActions; options.ApplyToApiControllerActions = _options.ApplyToApiControllerActions; options.ApiExceptionOptions = _options.ApiExceptionOptions; }).Apply(application);
             //Post data to MVC Controller from API
-            new FromBodyAndOtherSourcesConvention(options => { options.ApplyToMvcActions = true; options.ApplyToApiControllerActions = true; options.EnableForParametersWithNoBinding = true; options.EnableForParametersWithFormRouteQueryBinding = true; options.ChangeFromBodyBindingsToFromBodyFormAndRouteQueryBinding = true; }).Apply(application);
+            new FromBodyAndOtherSourcesConvention(options => { options.ApplyToMvcActions = _options.ApplyToMvcActions; options.ApplyToApiControllerActions = _options.ApplyToApiControllerActions; options.EnableForParametersWithNoBinding = true; options.EnableForParametersWithFormRouteQueryBinding = true; options.ChangeFromBodyBindingsToFromBodyFormAndRouteQueryBinding = true; }).Apply(application);
             //Return data uisng output formatter when acccept header is application/json or application/xml
-            new ConvertViewResultToObjectResultConvention(options => { options.ApplyToMvcActions = true; options.ApplyToApiControllerActions = true;}).Apply(application);
+            new ConvertViewResultToObjectResultConvention(options => { options.ApplyToMvcActions = _options.ApplyToMvcActions; options.ApplyToApiControllerActions = _options.ApplyToApiControllerActions; }).Apply(application);
         }
     }
 
     public class MvcAsApiConventionOptions
     {
+        public bool ApplyToMvcActions { get; set; } = true;
+
+        public bool ApplyToApiControllerActions { get; set; } = true;
+
         public Action<MvcErrorFilterOptions> MvcErrorOptions;
         public Action<MvcExceptionFilterOptions> MvcExceptionOptions;
 

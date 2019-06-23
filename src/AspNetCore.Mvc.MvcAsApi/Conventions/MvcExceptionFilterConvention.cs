@@ -32,17 +32,24 @@ namespace AspNetCore.Mvc.MvcAsApi.Conventions
         {
             var isApiController = action.Controller.Attributes.OfType<ApiControllerAttribute>().Any();
 
-            if ((!isApiController))
+            if ((isApiController && _options.ApplyToApiControllerActions))
             {
-                var apiExceptionFilterAttribute = new MvcExceptionFilterAttribute(_options.HandleNonBrowserRequests, _options.MvcExceptionOptions);
-                action.Filters.Add(apiExceptionFilterAttribute);
+                var mvcExceptionFilterAttribute = new MvcExceptionFilterAttribute(_options.MvcExceptionOptions);
+                action.Filters.Add(mvcExceptionFilterAttribute);
+            }
+            else if ((!isApiController && _options.ApplyToMvcActions))
+            {
+                var mvcExceptionFilterAttribute = new MvcExceptionFilterAttribute(_options.MvcExceptionOptions);
+                action.Filters.Add(mvcExceptionFilterAttribute);
             }
         }
     }
 
     public class MvcExceptionFilterConventionOptions
     {
-        public bool HandleNonBrowserRequests { get; set; } = false;
+        public bool ApplyToMvcActions { get; set; } = true;
+
+        public bool ApplyToApiControllerActions { get; set; } = true;
         public Action<MvcExceptionFilterOptions> MvcExceptionOptions { get; set; }
     }
 }

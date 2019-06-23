@@ -12,14 +12,14 @@ namespace AspNetCore.Mvc.MvcAsApi.Attributes
 {
     public class ApiExceptionFilterAttribute : ExceptionFilterAttribute
     {
-       public ApiExceptionFilterAttribute(bool handleBrowserRequests = false)
-        :this(handleBrowserRequests, null)
+       public ApiExceptionFilterAttribute()
+        :this(null)
         {
 
         }
 
-        public ApiExceptionFilterAttribute(bool handleBrowserRequests, Action<ApiExceptionFilterOptions> setupAction)
-        :base(handleBrowserRequests, true, ConfigureOptions(setupAction))
+        public ApiExceptionFilterAttribute(Action<ApiExceptionFilterOptions> setupAction)
+        :base(false, true, ConfigureOptions(setupAction))
         {
 
         }
@@ -36,14 +36,14 @@ namespace AspNetCore.Mvc.MvcAsApi.Attributes
 
     public class MvcExceptionFilterAttribute : ExceptionFilterAttribute
     {
-        public MvcExceptionFilterAttribute(bool handleNonBrowserRequests = false)
-         :this(handleNonBrowserRequests, null)
+        public MvcExceptionFilterAttribute()
+         :this(null)
         {
 
         }
 
-        public MvcExceptionFilterAttribute(bool handleNonBrowserRequests, Action<MvcExceptionFilterOptions> setupAction)
-        :base(true, handleNonBrowserRequests, ConfigureOptions(setupAction))
+        public MvcExceptionFilterAttribute(Action<MvcExceptionFilterOptions> setupAction)
+        :base(true, false, ConfigureOptions(setupAction))
         {
 
         }
@@ -60,10 +60,10 @@ namespace AspNetCore.Mvc.MvcAsApi.Attributes
 
     public abstract class ExceptionFilterAttribute : TypeFilterAttribute
     {
-        public ExceptionFilterAttribute(bool handleBrowserRequests, bool handleNonBrowserRequests, ExceptionFilterOptions options)
+        public ExceptionFilterAttribute(bool handleMvcRequests, bool handleApiRequests, ExceptionFilterOptions options)
        : base(typeof(ExceptionFilterImpl))
         {
-            Arguments = new object[] { handleBrowserRequests, handleNonBrowserRequests, options };
+            Arguments = new object[] { handleMvcRequests, handleApiRequests, options };
         }
 
         //https://github.com/aspnet/AspNetCore/blob/c565386a3ed135560bc2e9017aa54a950b4e35dd/src/Mvc/Mvc.Core/src/Infrastructure/ClientErrorResultFilter.cs#L44
@@ -72,22 +72,22 @@ namespace AspNetCore.Mvc.MvcAsApi.Attributes
             private readonly ILogger _logger;
             internal const int FilterOrder = -2000;
 
-            private readonly bool _handleBrowerRequests;
-            private readonly bool _handleNonBrowerRequests;
+            private readonly bool _handleMvcRequests;
+            private readonly bool _handleApiRequests;
             private readonly ExceptionFilterOptions _options;
             public int Order => FilterOrder;
 
-            public ExceptionFilterImpl(ILoggerFactory loggerFactory, bool handleBrowerRequests, bool handleNonBrowerRequests, ExceptionFilterOptions options)
+            public ExceptionFilterImpl(ILoggerFactory loggerFactory, bool handleMvcRequests, bool handleApiRequests, ExceptionFilterOptions options)
             {
                 _logger = loggerFactory.CreateLogger<ExceptionFilterAttribute>();
-                _handleBrowerRequests = handleBrowerRequests;
-                _handleNonBrowerRequests = handleNonBrowerRequests;
+                _handleMvcRequests = handleMvcRequests;
+                _handleApiRequests = handleApiRequests;
                 _options = options;
             }
 
             public void OnException(ExceptionContext context)
             {
-                if ((!_handleBrowerRequests && context.HttpContext.Request.IsBrowser()) || (!_handleNonBrowerRequests && !context.HttpContext.Request.IsBrowser()) || !_options.HandleException(context, _options))
+                if ((!_handleMvcRequests && context.HttpContext.Request.IsApi()) || (!_handleApiRequests && context.HttpContext.Request.IsApi()) || !_options.HandleException(context, _options))
                 {
                     return;
                 }

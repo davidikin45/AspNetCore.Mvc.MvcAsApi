@@ -19,6 +19,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Attributes
     //https://github.com/aspnet/AspNetCore/blob/c565386a3ed135560bc2e9017aa54a950b4e35dd/src/Mvc/Mvc.ViewFeatures/src/ViewExecutor.cs
 
     //https://github.com/aspnet/AspNetCore/blob/c565386a3ed135560bc2e9017aa54a950b4e35dd/src/Mvc/Mvc.Core/src/Infrastructure/ObjectResultExecutor.cs
+    //https://github.com/aspnet/AspNetCore/blob/c565386a3ed135560bc2e9017aa54a950b4e35dd/src/Mvc/Mvc.Core/src/Infrastructure/DefaultOutputFormatterSelector.cs
 
     //Works with [FromBodyRouteQueryAttribute]
 
@@ -55,6 +56,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Attributes
                     var responseContentType = context.HttpContext.Response.ContentType;
 
                     //If no response content type has been set we can convert ViewResult > ObjectResult
+                    //No Exception or
                     if (string.IsNullOrEmpty(responseContentType))
                     {
                         var result = new ObjectResult(viewResult.Model);
@@ -72,14 +74,17 @@ namespace AspNetCore.Mvc.MvcAsApi.Attributes
                             objectType,
                             result.Value);
 
-                        //NUll is tricky as all output formatters can write null.
-                        var sortedAcceptHeaders = GetAcceptableMediaTypes(context.HttpContext.Request);
-                        bool textHtmlRequest;
-                        var selectedFormatter = SelectFormatterUsingSortedAcceptHeaders(formatterContext, _mvcOptions.OutputFormatters, sortedAcceptHeaders, out textHtmlRequest);
+                        var sortedAcceptHeaders = context.HttpContext.Request.GetAcceptableMediaTypes();
+
+                        IOutputFormatter selectedFormatter = null;
+                        if (sortedAcceptHeaders.Count > 0)
+                        {
+                            selectedFormatter = SelectFormatterUsingSortedAcceptHeaders(formatterContext, _mvcOptions.OutputFormatters, sortedAcceptHeaders);
+                        }
 
                         if (selectedFormatter == null)
                         {
-                            if(!textHtmlRequest)
+                            if(sortedAcceptHeaders.Count > 0)
                             {
                                 _logger.LogInformation($"Failed converting ViewResult > ObjectResult. No output formatter found for Accept Header.");
                             }
@@ -101,35 +106,10 @@ namespace AspNetCore.Mvc.MvcAsApi.Attributes
                 }
             }
 
-            private readonly Comparison<MediaTypeSegmentWithQuality> _sortFunction = (left, right) =>
-            {
-                return left.Quality > right.Quality ? -1 : (left.Quality == right.Quality ? 0 : 1);
-            };
-
-            private List<MediaTypeSegmentWithQuality> GetAcceptableMediaTypes(HttpRequest request)
-            {
-                var result = new List<MediaTypeSegmentWithQuality>();
-                
-                AcceptHeaderParser.ParseAcceptHeader(request.Headers[HeaderNames.Accept], result);
-                for (var i = 0; i < result.Count; i++)
-                {
-                    var mediaType = new MediaType(result[i].MediaType);
-                    if (!_mvcOptions.RespectBrowserAcceptHeader && mediaType.MatchesAllSubTypes && mediaType.MatchesAllTypes)
-                    {
-                        result.Clear();
-                        return result;
-                    }
-                }
-
-                result.Sort(_sortFunction);
-
-                return result;
-            }
-
             private IOutputFormatter SelectFormatterUsingSortedAcceptHeaders(
             OutputFormatterCanWriteContext formatterContext,
             IList<IOutputFormatter> formatters,
-            IList<MediaTypeSegmentWithQuality> sortedAcceptHeaders, out bool textHtmlRequest)
+            IList<MediaTypeSegmentWithQuality> sortedAcceptHeaders)
             {
                 if (formatterContext == null)
                 {
@@ -148,34 +128,27 @@ namespace AspNetCore.Mvc.MvcAsApi.Attributes
 
                 for (var i = 0; i < sortedAcceptHeaders.Count; i++)
                 {
+
                     var mediaType = sortedAcceptHeaders[i];
 
                     formatterContext.ContentType = mediaType.MediaType;
                     formatterContext.ContentTypeIsServerDefined = false;
 
-                    if (mediaType.MediaType == "text/html")
-                    {
-                        textHtmlRequest = true;
-                        return null;
-                    }
-
                     for (var j = 0; j < formatters.Count; j++)
                     {
                         var formatter = formatters[j];
 
-                        if(formatter is OutputFormatter)
+                        if (formatter is OutputFormatter)
                         {
                             var outputForamtter = formatter as OutputFormatter;
                             if (outputForamtter.CanWriteResult(formatterContext) && OutputFormatterSupportsMediaType(outputForamtter, formatterContext))
                             {
-                                textHtmlRequest = false;
                                 return formatter;
                             }
                         }
                     }
                 }
 
-                textHtmlRequest = false;
                 return null;
             }
 

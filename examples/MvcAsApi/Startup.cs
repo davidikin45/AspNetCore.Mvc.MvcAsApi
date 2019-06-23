@@ -6,6 +6,7 @@ using AspNetCore.Mvc.MvcAsApi.ModelBinding;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Internal;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -99,6 +100,10 @@ namespace MvcAsApi
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
         {
+            app.UseEndpointRouting(); //.NET Core 2.2
+            //OR
+            //app.UseRouting(); //.NET Core 3.0
+
             if (env.IsDevelopment())
             {
                 // Non Api
@@ -114,7 +119,6 @@ namespace MvcAsApi
                    appBranch =>
                    {
                        appBranch.UseProblemDetailsExceptionHandler(options => options.ShowExceptionDetails = true);
-                        //The global error handler has logic inbuilt so if an error has been handled by MVC Filters it won't try and reprocess. 
                        appBranch.UseProblemDetailsErrorResponseHandler();
                    }
                 );
@@ -131,13 +135,12 @@ namespace MvcAsApi
                      }
                 );
 
-                // Web Api
+                    // Web Api
                     app.UseWhen(context => context.Request.IsApi(),
                        appBranch =>
                        {
                            appBranch.UseProblemDetailsExceptionHandler(options => options.ShowExceptionDetails = false);
-                            //The global error handler has logic inbuilt so if an error has been handled by MVC Filters it won't try and reprocess. 
-                            appBranch.UseProblemDetailsErrorResponseHandler();
+                           appBranch.UseProblemDetailsErrorResponseHandler();
                        }
                   );
 

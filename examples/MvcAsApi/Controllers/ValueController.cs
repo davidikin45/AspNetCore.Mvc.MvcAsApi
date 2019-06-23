@@ -16,7 +16,7 @@ namespace MvcAsApi.Controllers
         [HttpGet]
         public IActionResult ErrorResponse()
         {
-            return BadRequest();
+            throw new Exception();
         }
     }
 }

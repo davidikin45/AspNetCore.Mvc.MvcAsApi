@@ -244,7 +244,7 @@ public IActionResult ContactMvc(dynamic viewModel)
 ## Content Negotiation
 * See [Content Negotiation Process documentation](https://docs.microsoft.com/en-us/aspnet/core/web-api/advanced/formatting?view=aspnetcore-2.2)
 * By default MvcOptions.RespectBrowserAcceptHeader is set to false which means when you hit an Api from your web browser and it contains accept header '\*/*' the other accept headers are completely ignored.
-* This library uses the same logic to distinguish Browser and Non-Browser requests in order to return ViewResult (Browser request) or ObjectResult (Non-Browser request).
+* This library uses the same logic + 'text/html' to distinguish Browser and Non-Browser requests in order to return ViewResult (Browser request) or ObjectResult (Non-Browser request).
 * Below is a typical browser request showing that most of the accept headerers are actually ignored.
 
 ![alt text](img/content-negotiation.png "Content Negotiation")
@@ -321,6 +321,10 @@ services.AddProblemDetailsClientErrorAndExceptionFactory(options => options.Show
 * In order to skip the error handler set httpContext.Items["SkipProblemDetailsErrorResponseHandler"] = true; within middleware. 
 
 ```
+app.UseEndpointRouting(); //.NET Core 2.2
+//OR
+app.UseRouting(); //.NET Core 3.0
+			
 if (!env.IsProduction())
 {
 	// Non Api

@@ -1,17 +1,13 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Mvc.Formatters;
-using Microsoft.AspNetCore.Mvc.Formatters.Internal;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Microsoft.Extensions.Primitives;
-using Microsoft.Net.Http.Headers;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using AspNetCore.Mvc.MvcAsApi;
 
 namespace AspNetCore.Mvc.MvcAsApi.Attributes
 {
@@ -49,14 +45,13 @@ namespace AspNetCore.Mvc.MvcAsApi.Attributes
 
             public override void OnResultExecuting(ResultExecutingContext context)
             {
-                if (_enabled && context.Result is ViewResult)
+                if (_enabled && context.Result is ViewResult && !context.HttpContext.Request.IsBrowser())
                 {
                     var viewResult = context.Result as ViewResult;
 
                     var responseContentType = context.HttpContext.Response.ContentType;
 
                     //If no response content type has been set we can convert ViewResult > ObjectResult
-                    //No Exception or
                     if (string.IsNullOrEmpty(responseContentType))
                     {
                         var result = new ObjectResult(viewResult.Model);
@@ -67,19 +62,29 @@ namespace AspNetCore.Mvc.MvcAsApi.Attributes
                             objectType = result.Value?.GetType();
                         }
 
-                        Func<Stream, Encoding, TextWriter> writerFactory = (stream, encoding) => null;
-                        var formatterContext = new OutputFormatterWriteContext(
-                            context.HttpContext,
-                            writerFactory,
-                            objectType,
-                            result.Value);
-
+                        //If RespectBrowserAcceptHeader is true this will return alot of accept headers.
                         var sortedAcceptHeaders = context.HttpContext.Request.GetAcceptableMediaTypes();
 
                         IOutputFormatter selectedFormatter = null;
+                        var selectFormatterWithoutRegardingAcceptHeader = false;
                         if (sortedAcceptHeaders.Count > 0)
                         {
-                            selectedFormatter = SelectFormatterUsingSortedAcceptHeaders(formatterContext, _mvcOptions.OutputFormatters, sortedAcceptHeaders);
+                            selectedFormatter = context.HttpContext.Request.SelectFormatterUsingSortedAcceptHeaders(objectType, result.Value, sortedAcceptHeaders);
+                        }
+                        else
+                        {
+                            //[ApiControler] Browser Requests or [ApiController] requests without accept header will hit here.
+
+                            if(!context.HttpContext.Request.HasAcceptHeaders())
+                            {
+                                //We could use the default output formatter when no accept header is sent but think for conversion to occur an explicit accept header should be set.
+                                //selectFormatterWithoutRegardingAcceptHeader = true;
+                            }
+                        }
+
+                        if(selectFormatterWithoutRegardingAcceptHeader)
+                        {
+                            selectedFormatter = context.HttpContext.Request.SelectFormatterNotUsingContentType(objectType, result.Value);
                         }
 
                         if (selectedFormatter == null)
@@ -87,6 +92,10 @@ namespace AspNetCore.Mvc.MvcAsApi.Attributes
                             if(sortedAcceptHeaders.Count > 0)
                             {
                                 _logger.LogInformation($"Failed converting ViewResult > ObjectResult. No output formatter found for Accept Header.");
+                            }
+                            else
+                            {
+                                //No conversion needs to occcur.
                             }
                         }
                         else
@@ -104,89 +113,6 @@ namespace AspNetCore.Mvc.MvcAsApi.Attributes
                         }
                     }
                 }
-            }
-
-            private IOutputFormatter SelectFormatterUsingSortedAcceptHeaders(
-            OutputFormatterCanWriteContext formatterContext,
-            IList<IOutputFormatter> formatters,
-            IList<MediaTypeSegmentWithQuality> sortedAcceptHeaders)
-            {
-                if (formatterContext == null)
-                {
-                    throw new ArgumentNullException(nameof(formatterContext));
-                }
-
-                if (formatters == null)
-                {
-                    throw new ArgumentNullException(nameof(formatters));
-                }
-
-                if (sortedAcceptHeaders == null)
-                {
-                    throw new ArgumentNullException(nameof(sortedAcceptHeaders));
-                }
-
-                for (var i = 0; i < sortedAcceptHeaders.Count; i++)
-                {
-
-                    var mediaType = sortedAcceptHeaders[i];
-
-                    formatterContext.ContentType = mediaType.MediaType;
-                    formatterContext.ContentTypeIsServerDefined = false;
-
-                    for (var j = 0; j < formatters.Count; j++)
-                    {
-                        var formatter = formatters[j];
-
-                        if (formatter is OutputFormatter)
-                        {
-                            var outputForamtter = formatter as OutputFormatter;
-                            if (outputForamtter.CanWriteResult(formatterContext) && OutputFormatterSupportsMediaType(outputForamtter, formatterContext))
-                            {
-                                return formatter;
-                            }
-                        }
-                    }
-                }
-
-                return null;
-            }
-
-            private bool OutputFormatterSupportsMediaType(OutputFormatter outputForamtter, OutputFormatterCanWriteContext context)
-            {
-                var parsedContentType = new MediaType(context.ContentType);
-                for (var i = 0; i < outputForamtter.SupportedMediaTypes.Count; i++)
-                {
-                    var supportedMediaType = new MediaType(outputForamtter.SupportedMediaTypes[i]);
-                    if (supportedMediaType.HasWildcard)
-                    {
-                        // For supported media types that are wildcard patterns, confirm that the requested
-                        // media type satisfies the wildcard pattern (e.g., if "text/entity+json;v=2" requested
-                        // and formatter supports "text/*+json").
-                        // We only do this when comparing against server-defined content types (e.g., those
-                        // from [Produces] or Response.ContentType), otherwise we'd potentially be reflecting
-                        // back arbitrary Accept header values.
-                        if (context.ContentTypeIsServerDefined
-                            && parsedContentType.IsSubsetOf(supportedMediaType))
-                        {
-                            return true;
-                        }
-                    }
-                    else
-                    {
-                        // For supported media types that are not wildcard patterns, confirm that this formatter
-                        // supports a more specific media type than requested e.g. OK if "text/*" requested and
-                        // formatter supports "text/plain".
-                        // contentType is typically what we got in an Accept header.
-                        if (supportedMediaType.IsSubsetOf(parsedContentType))
-                        {
-                            context.ContentType = new StringSegment(outputForamtter.SupportedMediaTypes[i]);
-                            return true;
-                        }
-                    }
-                }
-
-                return false;
             }
         }
     }

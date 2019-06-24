@@ -58,7 +58,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Attributes
         }
     }
 
-    public abstract class ExceptionFilterAttribute : TypeFilterAttribute
+    public class ExceptionFilterAttribute : TypeFilterAttribute
     {
         public ExceptionFilterAttribute(bool handleMvcRequests, bool handleApiRequests, ExceptionFilterOptions options)
        : base(typeof(ExceptionFilterImpl))
@@ -87,7 +87,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Attributes
 
             public void OnException(ExceptionContext context)
             {
-                if ((!_handleMvcRequests && context.HttpContext.Request.IsApi()) || (!_handleApiRequests && context.HttpContext.Request.IsApi()) || !_options.HandleException(context, _options))
+                if ((!_handleMvcRequests && context.HttpContext.Request.IsMvc()) || (!_handleApiRequests && context.HttpContext.Request.IsApi()) || !_options.HandleException(context, _options))
                 {
                     return;
                 }

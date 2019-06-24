@@ -57,7 +57,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Attributes
         }
     }
 
-    public abstract class ErrorFilterAttribute : TypeFilterAttribute
+    public class ErrorFilterAttribute : TypeFilterAttribute
     {
         public ErrorFilterAttribute(bool handleMvcRequests, bool handleApiRequests, ErrorFilterOptions options)
        :base(typeof(ErrorFilterImpl))

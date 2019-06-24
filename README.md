@@ -1,6 +1,15 @@
 ﻿# ASP.NET Core MVC as Api
 
-* By default ASP.NET Core doesn't allow a single controller action to handle request/response for both Mvc and Api requests or allow an Api request to bind to Body + Route/Query. This library allows you to do so.
+* By default ASP.NET Core doesn't allow a single controller action to handle request/response for both Mvc and Api requests or allow an Api request to bind to Body + Route/Query. This library allows you to do so plus it has a bunch of other features.
+
+Features:
+1. Hybrid Model Binding
+2. MVC Dynamic/JObject ModelBinder
+3. Convert ViewResult to ObjectResult
+4. Enhanced Problem Details format (instance, traceId, timeGenerated) with option to expose ModelState errors in angular format
+5. Mvc Error/Exception handling
+6. Api Error/Exception handling
+7. Global Error/Exception Handling Problem Details Middleware
 
 Most useful for the following scenarios:
 1. Allowing Developers to Test/Develop/Debug Mvc Forms without worrying about UI. Used by applying conventions.
@@ -8,6 +17,7 @@ Most useful for the following scenarios:
 3. Used in Production to allow specific Mvc controller actions to return model as json/xml data.
 4. Used in Production to allow specific Api controller actions to bind to Body + Query/Route.
 5. Used in Production to allow Mvc controller actions to return error responses/exceptions as Problem Details.
+6. Used in Production globally to apply a modern frontend (React/Angular/Vue.js) to an existing MVC application.
 
 ## Installation
 
@@ -45,13 +55,13 @@ if(HostingEnvironment.IsDevelopment())
     services.AddProblemDetailsClientErrorAndExceptionFactory(options => options.ShowExceptionDetails = true);
 
     //Api Invalid ModelState Enhanced Problem Details (instance, traceId, timeGenerated, delegate factory)
-    services.ConfigureProblemDetailsInvalidModelStateFactory();
+    services.ConfigureProblemDetailsInvalidModelStateFactory(options => options.EnableAngularErrors = false);
 }
 ```
 
 ## Usage
 
-* Currently to create a controller which handles Api and Mvc requests you would need to write something along the lines of below.
+* Currently to create a controller which handles Api and Mvc requests you would need to write something along the lines of below. Most developers would seperate these actions into two seperate controllers.
 
 ```
 [Route("contact")]
@@ -101,7 +111,7 @@ public IActionResult ContactApi(ContactViewModel viewModel)
 }
 ```
 
-* This library give thes ability to add attributes/conventions which allow an Mvc controller action to accpet and return data as if it were an Api action method. An example of the attributes required can be seen below.
+* This library give thes ability to add attributes/conventions which allow an Mvc controller action to accept and return data as if it were an Api action method. An example of the attributes required can be seen below.
 
 ```
 [MvcExceptionFilter]

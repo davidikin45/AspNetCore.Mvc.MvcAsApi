@@ -5,20 +5,25 @@ using Microsoft.AspNetCore.Mvc.Formatters;
 using Microsoft.AspNetCore.Mvc.Formatters.Internal;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Primitives;
 using Microsoft.Net.Http.Headers;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Text;
 
 namespace AspNetCore.Mvc.MvcAsApi
 {
     public static class RequestHelper
     {
+        //Api Error Handling
         public static bool IsApi(this HttpRequest request)
         {
             return !IsMvc(request);
         }
 
+        //Mvc Error Handling
         public static bool IsMvc(this HttpRequest request)
         {
             return IsBrowserDelegate(request.HttpContext);
@@ -34,6 +39,7 @@ namespace AspNetCore.Mvc.MvcAsApi
             return ApiControllerNames.Any(search => context.Request.Host.ToString().Contains(search) || context.Request.Path.ToString().Contains(search));
         };
 
+        //We could do this check at an Action Level but for error handling generally you want all actions for a controller to behave the same by default and differ when an explicit accept header is sent in.
         public static Func<HttpContext, bool> IsApiControllerDelegate { get; set; } = (context) =>
         {
             //requires app.UseEndpointRouting(); or app.UseRouting();
@@ -43,7 +49,7 @@ namespace AspNetCore.Mvc.MvcAsApi
             {
                 var endpoint = endpointFeature.Endpoint;
 
-                if(endpoint != null)
+                if (endpoint != null)
                 {
                     //endpoint found
                     var controllerACtionDescriptor = endpoint.Metadata.OfType<ApiControllerAttribute>().FirstOrDefault();
@@ -63,10 +69,192 @@ namespace AspNetCore.Mvc.MvcAsApi
             return false;
         };
 
+        public static bool IsBrowser(this HttpRequest request)
+        {
+            return IsBrowserDelegate(request.HttpContext);
+        }
+
+        public static Func<HttpContext, bool> IsBrowserDelegate { get; set; } = (context) =>
+         {
+             var isMvcController = !IsApiControllerDelegate(context);
+
+             var result = new List<MediaTypeSegmentWithQuality>();
+             AcceptHeaderParser.ParseAcceptHeader(context.Request.Headers[HeaderNames.Accept], result);
+
+             if (isMvcController)
+             {
+                 if (result.Count == 1)
+                 {
+                     var mediaType = new MediaType(result[0].MediaType);
+                     if (!(mediaType.MatchesAllSubTypes && mediaType.MatchesAllTypes) && result[0].MediaType != "text/html")
+                     {
+                         var outputFormatter = context.Request.SelectFormatterUsingSortedAcceptHeaders(typeof(Object), new object(), new List<MediaTypeSegmentWithQuality>() { result[0] });
+                         if (outputFormatter != null)
+                         {
+                             return false;
+                         }
+                     }
+                 }
+
+                 return true;
+             }
+             else
+             {
+                 if (result.Count == 1)
+                 {
+                     if (result[0].MediaType == "text/html")
+                     {
+                         return true;
+                     }
+                 }
+
+                 return false;
+             }
+         };
+
         private static readonly Comparison<MediaTypeSegmentWithQuality> _sortFunction = (left, right) =>
         {
             return left.Quality > right.Quality ? -1 : (left.Quality == right.Quality ? 0 : 1);
         };
+
+        public static IOutputFormatter SelectFormatterUsingSortedAcceptHeaders(this HttpRequest request, Type objectType, object @object, List<MediaTypeSegmentWithQuality> sortedAcceptHeaders)
+        {
+            var options = request.HttpContext.RequestServices.GetService<IOptions<MvcOptions>>()?.Value;
+
+            if (options == null)
+                return null;
+
+            Func<Stream, Encoding, TextWriter> writerFactory = (stream, encoding) => null;
+            var formatterContext = new OutputFormatterWriteContext(
+                request.HttpContext,
+                writerFactory,
+                objectType,
+                @object);
+
+            IOutputFormatter selectedFormatter = null;
+            if (sortedAcceptHeaders.Count > 0)
+            {
+                selectedFormatter = request.SelectFormatterUsingSortedAcceptHeaders(formatterContext, options.OutputFormatters, sortedAcceptHeaders);
+            }
+
+            return selectedFormatter;
+        }
+
+        public static IOutputFormatter SelectFormatterUsingSortedAcceptHeaders(
+          this HttpRequest request,
+          OutputFormatterCanWriteContext formatterContext,
+          IList<IOutputFormatter> formatters,
+          IList<MediaTypeSegmentWithQuality> sortedAcceptHeaders)
+        {
+            if (formatterContext == null)
+            {
+                throw new ArgumentNullException(nameof(formatterContext));
+            }
+
+            if (formatters == null)
+            {
+                throw new ArgumentNullException(nameof(formatters));
+            }
+
+            if (sortedAcceptHeaders == null)
+            {
+                throw new ArgumentNullException(nameof(sortedAcceptHeaders));
+            }
+
+            for (var i = 0; i < sortedAcceptHeaders.Count; i++)
+            {
+
+                var mediaType = sortedAcceptHeaders[i];
+
+                formatterContext.ContentType = mediaType.MediaType;
+                formatterContext.ContentTypeIsServerDefined = false;
+
+                for (var j = 0; j < formatters.Count; j++)
+                {
+                    var formatter = formatters[j];
+
+                    if (formatter is OutputFormatter)
+                    {
+                        var outputForamtter = formatter as OutputFormatter;
+                        if (outputForamtter.CanWriteResult(formatterContext) && OutputFormatterSupportsMediaType(outputForamtter, formatterContext))
+                        {
+                            return formatter;
+                        }
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        public static IOutputFormatter SelectFormatterNotUsingContentType(
+           this HttpRequest request,
+            Type objectType, 
+            object @object)
+        {
+            var options = request.HttpContext.RequestServices.GetService<IOptions<MvcOptions>>()?.Value;
+
+            if (options == null)
+                return null;
+
+            Func<Stream, Encoding, TextWriter> writerFactory = (stream, encoding) => null;
+            var formatterContext = new OutputFormatterWriteContext(
+                request.HttpContext,
+                writerFactory,
+                objectType,
+                @object);
+
+            foreach (var formatter in options.OutputFormatters)
+            {
+                formatterContext.ContentType = new StringSegment();
+                formatterContext.ContentTypeIsServerDefined = false;
+
+                if (formatter.CanWriteResult(formatterContext))
+                {
+                    return formatter;
+                }
+            }
+
+            return null;
+        }
+
+        private static bool OutputFormatterSupportsMediaType(OutputFormatter outputForamtter, OutputFormatterCanWriteContext context)
+        {
+            var parsedContentType = new MediaType(context.ContentType);
+            for (var i = 0; i < outputForamtter.SupportedMediaTypes.Count; i++)
+            {
+                var supportedMediaType = new MediaType(outputForamtter.SupportedMediaTypes[i]);
+                if (supportedMediaType.HasWildcard)
+                {
+                    // For supported media types that are wildcard patterns, confirm that the requested
+                    // media type satisfies the wildcard pattern (e.g., if "text/entity+json;v=2" requested
+                    // and formatter supports "text/*+json").
+                    // We only do this when comparing against server-defined content types (e.g., those
+                    // from [Produces] or Response.ContentType), otherwise we'd potentially be reflecting
+                    // back arbitrary Accept header values.
+                    if (context.ContentTypeIsServerDefined
+                        && parsedContentType.IsSubsetOf(supportedMediaType))
+                    {
+                        return true;
+                    }
+                }
+                else
+                {
+                    // For supported media types that are not wildcard patterns, confirm that this formatter
+                    // supports a more specific media type than requested e.g. OK if "text/*" requested and
+                    // formatter supports "text/plain".
+                    // contentType is typically what we got in an Accept header.
+                    if (supportedMediaType.IsSubsetOf(parsedContentType))
+                    {
+                        context.ContentType = new StringSegment(outputForamtter.SupportedMediaTypes[i]);
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
 
         public static List<MediaTypeSegmentWithQuality> GetAcceptableMediaTypes(this HttpRequest request)
         {
@@ -79,7 +267,7 @@ namespace AspNetCore.Mvc.MvcAsApi
             for (var i = 0; i < result.Count; i++)
             {
                 var mediaType = new MediaType(result[i].MediaType);
-                if ((!mvcOptions.RespectBrowserAcceptHeader && mediaType.MatchesAllSubTypes && mediaType.MatchesAllTypes) || result[i].MediaType == "text/html")
+                if ((!mvcOptions.RespectBrowserAcceptHeader && mediaType.MatchesAllSubTypes && mediaType.MatchesAllTypes))
                 {
                     result.Clear();
                     return result;
@@ -91,42 +279,13 @@ namespace AspNetCore.Mvc.MvcAsApi
             return result;
         }
 
-        public static bool IsBrowser(this HttpRequest request)
+        public static bool HasAcceptHeaders(this HttpRequest request)
         {
-            return IsBrowserDelegate(request.HttpContext);
+            var result = new List<MediaTypeSegmentWithQuality>();
+
+            AcceptHeaderParser.ParseAcceptHeader(request.Headers[HeaderNames.Accept], result);
+
+            return result.Count > 0;
         }
-
-        public static Func<HttpContext, bool> IsBrowserDelegate { get; set; } = (context) =>
-         {
-             var isMvcController = !IsApiControllerDelegate(context);
-
-             //Allowing MvcController to be Mvc/Api but not allowing ApiController to be Api/Mvc.
-             if (isMvcController)
-             {
-                 var acceptableMediaTypes = context.Request.GetAcceptableMediaTypes();
-                 if(acceptableMediaTypes.Count > 0)
-                 {
-                     return false;
-                 }
-                 else
-                 {
-                     return true;
-                 }
-             }
-             else
-             {
-                 var result = new List<MediaTypeSegmentWithQuality>();
-
-                 AcceptHeaderParser.ParseAcceptHeader(context.Request.Headers[HeaderNames.Accept], result);
-
-                 if (result.Count == 1 && result[0].MediaType == "text/html")
-                 {
-                     return true;
-                 }
-             }
-
-             //otherwise we aren't from browser.
-             return false;
-         };
     }
 }

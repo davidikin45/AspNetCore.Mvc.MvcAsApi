@@ -1,6 +1,6 @@
 ﻿# ASP.NET Core MVC as Api
 
-[![nuget](https://img.shields.io/nuget/v/AspNetCore.Mvc.MvcAsApi.svg)](https://www.nuget.org/packages/EntityFrameworkCore.Initialization/) ![Downloads](https://img.shields.io/nuget/dt/AspNetCore.Mvc.MvcAsApi.svg "Downloads")
+[![nuget](https://img.shields.io/nuget/v/AspNetCore.Mvc.MvcAsApi.svg)](https://www.nuget.org/packages/AspNetCore.Mvc.MvcAsApi/) ![Downloads](https://img.shields.io/nuget/dt/AspNetCore.Mvc.MvcAsApi.svg "Downloads")
 
 
 By default ASP.NET Core doesn't allow a single controller action to handle request/response for both Mvc and Api requests or allow an Api request to bind to Body + Route/Query. This library allows you to do so plus it has a bunch of other features.

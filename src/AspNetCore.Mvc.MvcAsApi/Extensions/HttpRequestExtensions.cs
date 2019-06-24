@@ -1,8 +1,8 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using AspNetCore.Mvc.MvcAsApi.Internal;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Formatters;
-using Microsoft.AspNetCore.Mvc.Formatters.Internal;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
@@ -78,14 +78,13 @@ namespace AspNetCore.Mvc.MvcAsApi.Extensions
          {
              var isMvcController = !IsApiControllerDelegate(context);
 
-             var result = new List<MediaTypeSegmentWithQuality>();
-             AcceptHeaderParser.ParseAcceptHeader(context.Request.Headers[HeaderNames.Accept], result);
+             var result = Internal.AcceptHeaderParser.ParseAcceptHeader(context.Request.Headers[HeaderNames.Accept]);
 
              if (isMvcController)
              {
                  if (result.Count == 1)
                  {
-                     var mediaType = new MediaType(result[0].MediaType);
+                     var mediaType = new Internal.MediaType(result[0].MediaType);
                      if (!(mediaType.MatchesAllSubTypes && mediaType.MatchesAllTypes) && result[0].MediaType != "text/html")
                      {
                          var outputFormatter = context.Request.SelectFormatterUsingSortedAcceptHeaders(typeof(Object), new object(), new List<MediaTypeSegmentWithQuality>() { result[0] });
@@ -117,7 +116,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Extensions
             return left.Quality > right.Quality ? -1 : (left.Quality == right.Quality ? 0 : 1);
         };
 
-        public static IOutputFormatter SelectFormatterUsingSortedAcceptHeaders(this HttpRequest request, Type objectType, object @object, List<MediaTypeSegmentWithQuality> sortedAcceptHeaders)
+        internal static IOutputFormatter SelectFormatterUsingSortedAcceptHeaders(this HttpRequest request, Type objectType, object @object, List<MediaTypeSegmentWithQuality> sortedAcceptHeaders)
         {
             var options = request.HttpContext.RequestServices.GetService<IOptions<MvcOptions>>()?.Value;
 
@@ -140,7 +139,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Extensions
             return selectedFormatter;
         }
 
-        public static IOutputFormatter SelectFormatterUsingSortedAcceptHeaders(
+        internal static IOutputFormatter SelectFormatterUsingSortedAcceptHeaders(
           this HttpRequest request,
           OutputFormatterCanWriteContext formatterContext,
           IList<IOutputFormatter> formatters,
@@ -220,10 +219,10 @@ namespace AspNetCore.Mvc.MvcAsApi.Extensions
 
         private static bool OutputFormatterSupportsMediaType(OutputFormatter outputForamtter, OutputFormatterCanWriteContext context)
         {
-            var parsedContentType = new MediaType(context.ContentType);
+            var parsedContentType = new Internal.MediaType(context.ContentType);
             for (var i = 0; i < outputForamtter.SupportedMediaTypes.Count; i++)
             {
-                var supportedMediaType = new MediaType(outputForamtter.SupportedMediaTypes[i]);
+                var supportedMediaType = new Internal.MediaType(outputForamtter.SupportedMediaTypes[i]);
                 if (supportedMediaType.HasWildcard)
                 {
                     // For supported media types that are wildcard patterns, confirm that the requested
@@ -254,19 +253,17 @@ namespace AspNetCore.Mvc.MvcAsApi.Extensions
 
             return false;
         }
-
-
-        public static List<MediaTypeSegmentWithQuality> GetAcceptableMediaTypes(this HttpRequest request)
+        internal static List<MediaTypeSegmentWithQuality> GetAcceptableMediaTypes(this HttpRequest request)
         {
             var mvcOptions = request.HttpContext.RequestServices.GetRequiredService<IOptions<MvcOptions>>()?.Value;
 
             var result = new List<MediaTypeSegmentWithQuality>();
 
             //If the accept header contains '*/*' or 'text/html' ignore all accept headers
-            AcceptHeaderParser.ParseAcceptHeader(request.Headers[HeaderNames.Accept], result);
+            Internal.AcceptHeaderParser.ParseAcceptHeader(request.Headers[HeaderNames.Accept], result);
             for (var i = 0; i < result.Count; i++)
             {
-                var mediaType = new MediaType(result[i].MediaType);
+                var mediaType = new Internal.MediaType(result[i].MediaType);
                 if ((!mvcOptions.RespectBrowserAcceptHeader && mediaType.MatchesAllSubTypes && mediaType.MatchesAllTypes))
                 {
                     result.Clear();
@@ -281,9 +278,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Extensions
 
         public static bool HasAcceptHeaders(this HttpRequest request)
         {
-            var result = new List<MediaTypeSegmentWithQuality>();
-
-            AcceptHeaderParser.ParseAcceptHeader(request.Headers[HeaderNames.Accept], result);
+            var result = Internal.AcceptHeaderParser.ParseAcceptHeader(request.Headers[HeaderNames.Accept]);
 
             return result.Count > 0;
         }

@@ -35,7 +35,7 @@ namespace AspNetCore.Mvc.MvcAsApi.ModelBinding
 
             var modelName = bindingContext.ModelName;
 
-            var valueProvider = await CompositeValueProvider.CreateAsync(bindingContext.ActionContext, new CopyOnWriteList<IValueProviderFactory>(_valueProviderFactories));
+            var valueProvider = await CompositeValueProvider.CreateAsync(bindingContext.ActionContext, new Internal.CopyOnWriteList<IValueProviderFactory>(_valueProviderFactories));
 
             JObject model = bindingContext.Model != null ? (JObject)bindingContext.Model : new JObject();
 

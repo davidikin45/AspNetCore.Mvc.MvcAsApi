@@ -20,17 +20,26 @@ namespace AspNetCore.Mvc.MvcAsApi.Factories
         {
             var apiBehaviorOptions = httpContext.RequestServices.GetService<IOptions<ApiBehaviorOptions>>()?.Value;
 
-            var problemDetails = new ValidationProblemDetails(modelState)
+            ValidationProblemDetails problemDetails;
+            if(addAngularFormattedErrors)
             {
-                //Title = "One or more validation errors occurred.", Unprocessable Entity
-                Instance = httpContext.Request.Path,
-                Detail = "Please refer to the errors property for additional details.",
-                Status = status
-            };
-
-            if (addAngularFormattedErrors)
+                problemDetails = new AngularValidationProblemDetails(modelState)
+                {
+                    //Title = "One or more validation errors occurred.", Unprocessable Entity
+                    Instance = httpContext.Request.Path,
+                    Detail = "Please refer to the errors property for additional details.",
+                    Status = status
+                };
+            }
+            else
             {
-                AddAngularFormatteErrors(problemDetails);
+                problemDetails = new ValidationProblemDetails(modelState)
+                {
+                    //Title = "One or more validation errors occurred.", Unprocessable Entity
+                    Instance = httpContext.Request.Path,
+                    Detail = "Please refer to the errors property for additional details.",
+                    Status = status
+                };
             }
 
             SetTraceId(httpContext, problemDetails);
@@ -49,17 +58,26 @@ namespace AspNetCore.Mvc.MvcAsApi.Factories
         {
             var apiBehaviorOptions = httpContext.RequestServices.GetService<IOptions<ApiBehaviorOptions>>()?.Value;
 
-            var problemDetails = new ValidationProblemDetails(errors)
+            ValidationProblemDetails problemDetails;
+            if (addAngularFormattedErrors)
             {
-                //Title = "One or more validation errors occurred.", Unprocessable Entity
-                Instance = httpContext.Request.Path,
-                Detail = "Please refer to the errors property for additional details.",
-                Status = status
-            };
-
-            if(addAngularFormattedErrors)
+                problemDetails = new AngularValidationProblemDetails(errors)
+                {
+                    //Title = "One or more validation errors occurred.", Unprocessable Entity
+                    Instance = httpContext.Request.Path,
+                    Detail = "Please refer to the errors property for additional details.",
+                    Status = status
+                };
+            }
+            else
             {
-                AddAngularFormatteErrors(problemDetails);
+                problemDetails = new ValidationProblemDetails(errors)
+                {
+                    //Title = "One or more validation errors occurred.", Unprocessable Entity
+                    Instance = httpContext.Request.Path,
+                    Detail = "Please refer to the errors property for additional details.",
+                    Status = status
+                };
             }
 
             SetTraceId(httpContext, problemDetails);

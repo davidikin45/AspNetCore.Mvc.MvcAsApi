@@ -34,7 +34,7 @@ PM> Install-Package AspNetCore.Mvc.MvcAsApi
 > dotnet add package AspNetCore.Mvc.MvcAsApi
 ```
 
-## Quick Start
+## Quick Start ASP.NET Core 2.2
 ```
 services.AddMvc(options =>
 {
@@ -46,7 +46,49 @@ services.AddMvc(options =>
         options.Conventions.Add(new MvcAsApiConvention());
     }
 
-}).SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
+}).SetCompatibilityVersion(CompatibilityVersion.Version_2_2)
+//ModelState errors as camelCase
+//Even though in 2.2 the default property naming strategy is camelCase, ProcessDictionaryKeys = false which means model state errors are not camelCase by default.
+//https://stackoverflow.com/questions/43488932/how-to-set-modelstate-error-keys-to-camel-case
+.AddJsonOptions(options => options.SerializerSettings.ContractResolver = new CamelCasePropertyNamesContractResolver());
+
+//Optional - These could be used independently of MvcAsApiConvention
+if(HostingEnvironment.IsDevelopment())
+{
+    //MVC Dynamic Model Binding
+    services.AddDynamicModelBinder();
+
+    //Api StatusCodeResult Enhanced Problem Details (instance, traceId, timeGenerated, delegate factory)
+    services.AddProblemDetailsClientErrorAndExceptionFactory(options => options.ShowExceptionDetails = true);
+
+    //Api Invalid ModelState Enhanced Problem Details (instance, traceId, timeGenerated, delegate factory)
+    services.ConfigureProblemDetailsInvalidModelStateFactory(options => options.EnableAngularErrors = false);
+}
+```
+
+## Quick Start ASP.NET Core 3.0
+```
+services.AddMvc(options =>
+{
+    options.RespectBrowserAcceptHeader = false;
+    options.ReturnHttpNotAcceptable = true;
+
+    if(HostingEnvironment.IsDevelopment())
+    {
+        options.Conventions.Add(new MvcAsApiConvention());
+    }
+
+});
+
+services.Configure<JsonOptions>(options =>
+{
+	//default
+	options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+
+	//BUG: Currently DictionaryKeyPolicy only works for deserialization but not serialization so model state errors are not camelCase!
+	//https://github.com/dotnet/corefx/issues/38840
+	options.JsonSerializerOptions.DictionaryKeyPolicy = JsonNamingPolicy.CamelCase;
+});
 
 //Optional - These could be used independently of MvcAsApiConvention
 if(HostingEnvironment.IsDevelopment())
@@ -188,7 +230,11 @@ public IActionResult ContactMvc([FromBodyAndModelBinding] ContactViewModel viewM
 		options.Conventions.Add(new ConvertViewResultToObjectResultConvention(o => { o.ApplyToMvcActions = true; o.ApplyToApiControllerActions = true; }));
 
 	}
-}).SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
+}).SetCompatibilityVersion(CompatibilityVersion.Version_2_2)
+//ModelState errors as camelCase
+//Even though in 2.2 the default property naming strategy is camelCase, ProcessDictionaryKeys = false which means model state errors are not camelCase by default.
+//https://stackoverflow.com/questions/43488932/how-to-set-modelstate-error-keys-to-camel-case
+.AddJsonOptions(options => options.SerializerSettings.ContractResolver = new CamelCasePropertyNamesContractResolver());
 
 //Optional
 if(HostingEnvironment.IsDevelopment())

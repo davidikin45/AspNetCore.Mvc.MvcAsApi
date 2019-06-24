@@ -25,6 +25,15 @@ namespace AspNetCore.Mvc.MvcAsApi.Extensions
           new EventId(49, "ProblemDetailsErrorResponseHandlerMiddleware"),
           "Replacing response with status code {StatusCode} with problem details.");
 
+        private static readonly Action<ILogger, Type, Exception> _notMostEffectiveFilter = LoggerMessage.Define<Type>(LogLevel.Debug,  
+            new EventId(1, "NotMostEffectiveFilter"), 
+            "Skipping the execution of current filter as its not the most effective filter implementing the policy {FilterPolicy}.");
+
+        private static readonly Action<ILogger, string, Exception> _antiforgeryTokenInvalid = LoggerMessage.Define<string>(
+               LogLevel.Information,
+                new EventId(1, "AntiforgeryTokenInvalid"),
+                "Antiforgery token validation failed. {Message}");
+
         public static void UnhandledException(this ILogger logger, Exception exception)
         {
             _unhandledException(logger, exception);
@@ -43,6 +52,16 @@ namespace AspNetCore.Mvc.MvcAsApi.Extensions
         public static void TransformingStatusCodeToProblemDetails(this ILogger logger, int? statusCode)
         {
             _transformingStatusCode(logger, statusCode, null);
+        }
+
+        public static void NotMostEffectiveFilter(this ILogger logger, Type policyType)
+        {
+            _notMostEffectiveFilter(logger, policyType, null);
+        }
+
+        public static void AntiforgeryTokenInvalid(this ILogger logger, string message, Exception exception)
+        {
+            _antiforgeryTokenInvalid(logger, message, exception);
         }
     }
 }

@@ -1,9 +1,11 @@
-﻿using Microsoft.AspNetCore.Antiforgery;
+﻿using AspNetCore.Mvc.MvcAsApi.Extensions;
+using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
-using Microsoft.AspNetCore.Mvc.ViewFeatures.Internal;
+using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Threading.Tasks;
 
 namespace AspNetCore.Mvc.MvcAsApi.Attributes
 {
@@ -19,14 +21,50 @@ namespace AspNetCore.Mvc.MvcAsApi.Attributes
 
         }
 
-        private class AutoValidateFormAntiforgeryTokenAuthorizationFilterImpl : ValidateAntiforgeryTokenAuthorizationFilter
+        private class AutoValidateFormAntiforgeryTokenAuthorizationFilterImpl : IAsyncAuthorizationFilter, IAntiforgeryPolicy
         {
+            private readonly IAntiforgery _antiforgery;
+            private readonly ILogger _logger;
+
             public AutoValidateFormAntiforgeryTokenAuthorizationFilterImpl(IAntiforgery antiforgery, ILoggerFactory loggerFactory)
-                : base(antiforgery, loggerFactory)
             {
+                if (antiforgery == null)
+                {
+                    throw new ArgumentNullException(nameof(antiforgery));
+                }
+
+                _antiforgery = antiforgery;
+                _logger = loggerFactory.CreateLogger(GetType());
             }
 
-            protected override bool ShouldValidate(AuthorizationFilterContext context)
+            public async Task OnAuthorizationAsync(AuthorizationFilterContext context)
+            {
+                if (context == null)
+                {
+                    throw new ArgumentNullException(nameof(context));
+                }
+
+                if (!context.IsEffectivePolicy<IAntiforgeryPolicy>(this))
+                {
+                    _logger.NotMostEffectiveFilter(typeof(IAntiforgeryPolicy));
+                    return;
+                }
+
+                if (ShouldValidate(context))
+                {
+                    try
+                    {
+                        await _antiforgery.ValidateRequestAsync(context.HttpContext);
+                    }
+                    catch (AntiforgeryValidationException exception)
+                    {
+                        _logger.AntiforgeryTokenInvalid(exception.Message, exception);
+                        context.Result = new AntiforgeryValidationFailedResult();
+                    }
+                }
+            }
+
+            protected virtual bool ShouldValidate(AuthorizationFilterContext context)
             {
                 if (context == null)
                 {

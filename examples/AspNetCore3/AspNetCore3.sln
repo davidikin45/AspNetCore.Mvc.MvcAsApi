@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29009.5
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AspNetCore3", "AspNetCore3.csproj", "{A70E9465-1E1E-4F0B-BC6A-7518EC050F23}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AspNetCore.Mvc.MvcAsApi", "..\..\src\AspNetCore.Mvc.MvcAsApi\AspNetCore.Mvc.MvcAsApi.csproj", "{18F5D452-43D5-4751-AE54-3BD401FA6A8C}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A70E9465-1E1E-4F0B-BC6A-7518EC050F23}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A70E9465-1E1E-4F0B-BC6A-7518EC050F23}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A70E9465-1E1E-4F0B-BC6A-7518EC050F23}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A70E9465-1E1E-4F0B-BC6A-7518EC050F23}.Release|Any CPU.Build.0 = Release|Any CPU
+		{18F5D452-43D5-4751-AE54-3BD401FA6A8C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{18F5D452-43D5-4751-AE54-3BD401FA6A8C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{18F5D452-43D5-4751-AE54-3BD401FA6A8C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{18F5D452-43D5-4751-AE54-3BD401FA6A8C}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {59D15138-A7A8-4304-A9E7-803135B4C654}
+	EndGlobalSection
+EndGlobal

@@ -1,31 +1,28 @@
-﻿using AspNetCore.Mvc.MvcAsApi;
 using AspNetCore.Mvc.MvcAsApi.Conventions;
 using AspNetCore.Mvc.MvcAsApi.Extensions;
-using AspNetCore.Mvc.MvcAsApi.Middleware;
-using AspNetCore.Mvc.MvcAsApi.ModelBinding;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Internal;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Newtonsoft.Json.Serialization;
-using System.Threading.Tasks;
+using Microsoft.Extensions.Hosting;
+using AspNetCore.Mvc.MvcAsApi.Middleware;
+using AspNetCore.Mvc.MvcAsApi.ModelBinding;
+using Microsoft.AspNetCore.Mvc;
+using System.Text.Json.Serialization;
+using System.Collections.Generic;
 
-namespace MvcAsApi
+namespace AspNetCore3
 {
     public class Startup
     {
-        public Startup(IConfiguration configuration, IHostingEnvironment hostingEnvironment)
+        public Startup(IConfiguration configuration, IHostEnvironment hostEnvironment)
         {
             Configuration = configuration;
-            HostingEnvironment = hostingEnvironment;
+            HostingEnvironment = hostEnvironment;
         }
 
         public IConfiguration Configuration { get; }
-        public IHostingEnvironment HostingEnvironment { get; }
+        public IHostEnvironment HostingEnvironment { get; }
 
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
@@ -34,11 +31,11 @@ namespace MvcAsApi
             {
                 // This lambda determines whether user consent for non-essential cookies is needed for a given request.
                 options.CheckConsentNeeded = context => true;
-                options.MinimumSameSitePolicy = SameSiteMode.None;
             });
 
-            services.AddMvc(options =>
-            {
+
+            services.AddControllersWithViews(options => {
+
                 //Default = false. 
                 //If the Request contains Accept header '*/*' the server ignores the Accept headers completely and uses the first output formatter that can format the object (usually json). 
                 //For example when you hit an Api from a web browser.
@@ -57,7 +54,7 @@ namespace MvcAsApi
                     options.Conventions.Add(new MvcAsApiConvention(o =>
                     {
                         o.MvcErrorOptions = (mvcErrorOptions) => {
-                 
+
                         };
                         o.MvcExceptionOptions = (mvcExceptionOptions) => {
 
@@ -83,13 +80,23 @@ namespace MvcAsApi
                     //Return data uisng output formatter when acccept header is application/json or application/xml
                     //options.Conventions.Add(new ConvertViewResultToObjectResultConvention(o => { o.ApplyToMvcActions = true; o.ApplyToApiControllerActions = true; }));
                 }
-            }).SetCompatibilityVersion(CompatibilityVersion.Version_2_2)
-            //ModelState errors as camelCase
-            //Even though in 2.2 the default property naming strategy is camelCase, ProcessDictionaryKeys = false which means model state errors are not camelCase by default.
-            //https://stackoverflow.com/questions/43488932/how-to-set-modelstate-error-keys-to-camel-case
-            .AddJsonOptions(options => options.SerializerSettings.ContractResolver = new CamelCasePropertyNamesContractResolver());
 
-            //Optional - These could be used independently of MvcAsApiConvention
+
+               
+            });
+            services.AddRazorPages();
+
+            //https://github.com/dotnet/corefx/blob/e8990ae04e4ef62f5ccb143352472c9b4d5d5968/src/System.Text.Json/docs/SerializerProgrammingModel.md
+            services.Configure<JsonOptions>(options =>
+            {
+                //default
+                options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+
+                //BUG: Currently DictionaryKeyPolicy only works for deserialization but not serialization so model state errors are not camelCase!
+                //https://github.com/dotnet/corefx/issues/38840
+                options.JsonSerializerOptions.DictionaryKeyPolicy = JsonNamingPolicy.CamelCase;
+            });
+
             if (HostingEnvironment.IsDevelopment())
             {
                 //MVC Dynamic Model Binding
@@ -104,11 +111,10 @@ namespace MvcAsApi
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
-            app.UseEndpointRouting(); //.NET Core 2.2
-            //OR
-            //app.UseRouting(); //.NET Core 3.0
+            app.UseRouting(); //.NET Core 3.0
+
 
             if (env.IsDevelopment())
             {
@@ -141,14 +147,14 @@ namespace MvcAsApi
                      }
                 );
 
-                    // Web Api
-                    app.UseWhen(context => context.Request.IsApi(),
-                       appBranch =>
-                       {
-                           appBranch.UseProblemDetailsExceptionHandler(options => options.ShowExceptionDetails = false);
-                           appBranch.UseProblemDetailsErrorResponseHandler();
-                       }
-                  );
+                // Web Api
+                app.UseWhen(context => context.Request.IsApi(),
+                   appBranch =>
+                   {
+                       appBranch.UseProblemDetailsExceptionHandler(options => options.ShowExceptionDetails = false);
+                       appBranch.UseProblemDetailsErrorResponseHandler();
+                   }
+              );
 
                 // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
                 app.UseHsts();
@@ -156,13 +162,17 @@ namespace MvcAsApi
 
             app.UseHttpsRedirection();
             app.UseStaticFiles();
+
             app.UseCookiePolicy();
 
-            app.UseMvc(routes =>
+            app.UseAuthorization();
+
+            app.UseEndpoints(endpoints =>
             {
-                routes.MapRoute(
+                endpoints.MapControllerRoute(
                     name: "default",
-                    template: "{controller=Home}/{action=Index}/{id?}");
+                    pattern: "{controller=Home}/{action=Index}/{id?}");
+                endpoints.MapRazorPages();
             });
         }
     }

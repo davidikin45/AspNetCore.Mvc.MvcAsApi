@@ -8,6 +8,7 @@ using System;
 using System.IO;
 using System.Text;
 using AspNetCore.Mvc.MvcAsApi;
+using AspNetCore.Mvc.MvcAsApi.Extensions;
 
 namespace AspNetCore.Mvc.MvcAsApi.Attributes
 {

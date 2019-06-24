@@ -8,7 +8,7 @@ using WebApiContrib.Core.Results;
 
 namespace AspNetCore.Mvc.MvcAsApi.Extensions
 {
-    public static class RequestExtensions
+    public static class HttpContextExtensions
     {
         public static async Task WriteProblemDetailsResultAsync(this HttpContext context, ProblemDetails problemDetails)
         {

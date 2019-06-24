@@ -13,9 +13,9 @@ using System.IO;
 using System.Linq;
 using System.Text;
 
-namespace AspNetCore.Mvc.MvcAsApi
+namespace AspNetCore.Mvc.MvcAsApi.Extensions
 {
-    public static class RequestHelper
+    public static class HttpRequestExtensions
     {
         //Api Error Handling
         public static bool IsApi(this HttpRequest request)

@@ -451,11 +451,11 @@ else
 ```
 
 ## Application Builder Outbound Extension
-* While developing this library I realised that app.UseWhen evaluates the delegate when the request comes but at that point in time MVC hadn't determined the route. This can be overcome by using endpoint routing but as I wasn't intercepting the responses by default I only wanted the middleware to run on the way out of the pipeline so I developed this extension method.
+* While developing this library I realised that app.UseWhen evaluates the delegate when the request comes but at that point in time MVC hadn't determined the route. This can be overcome by using endpoint routing but as I wasn't intercepting content responses (by default) I only need the middleware to run on the way out of the pipeline so I developed this extension method.
 * [ASP.NET Core Middleware](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/middleware/?view=aspnetcore-2.2)
 
 ```
-public static class ApplicationBuilderExtensions
+ public static class ApplicationBuilderExtensions
 {
     public static IApplicationBuilder UseOutbound(this IApplicationBuilder app, Action<IApplicationBuilder> configuration)
     {
@@ -465,35 +465,33 @@ public static class ApplicationBuilderExtensions
     public static IApplicationBuilder UseOutboundWhen(this IApplicationBuilder app, Func<HttpContext, bool> predicate, Action<IApplicationBuilder> configuration)
     {
         var outboundPipeline = app.New();
-
         outboundPipeline.UseWhen(predicate, appBranch => configuration(appBranch));
         outboundPipeline.Run(context =>
         {
-            var exceptionHandlerFeature = context.Features.Get<IExceptionHandlerFeature>();
-            var exception = exceptionHandlerFeature?.Error;
-            if (exception != null)
+            if (context.Items.ContainsKey("OutboundExceptionDispatchInfo"))
             {
-                ExceptionDispatchInfo edi = ExceptionDispatchInfo.Capture(exception);
+                var edi = (ExceptionDispatchInfo)context.Items["OutboundExceptionDispatchInfo"];
+                context.Items.Remove("OutboundExceptionDispatchInfo");
                 edi.Throw();
             }
             return Task.CompletedTask;
         });
 
-        var outboundRequestDelegate = outboundPipeline.Build();
-
-        app.UseExceptionHandler(appBranch =>
-        {
-            appBranch.Run(async context =>
-            {
-                await outboundRequestDelegate(context);
-            });
-        });
+        var outboundHandler = outboundPipeline.Build();
 
         return app.Use(async (context, next) =>
         {
-            await next.Invoke();
+            try
+            {
+                await next.Invoke();
+            }
+            catch(Exception exception)
+            {
+                var edi = ExceptionDispatchInfo.Capture(exception);
+                context.Items.Add("OutboundExceptionDispatchInfo", edi);
+            }
 
-            await outboundRequestDelegate(context);
+            await outboundHandler(context);
         });
     }
 }

@@ -17,35 +17,33 @@ namespace AspNetCore.Mvc.MvcAsApi.Extensions
         public static IApplicationBuilder UseOutboundWhen(this IApplicationBuilder app, Func<HttpContext, bool> predicate, Action<IApplicationBuilder> configuration)
         {
             var outboundPipeline = app.New();
-
             outboundPipeline.UseWhen(predicate, appBranch => configuration(appBranch));
             outboundPipeline.Run(context =>
             {
-                var exceptionHandlerFeature = context.Features.Get<IExceptionHandlerFeature>();
-                var exception = exceptionHandlerFeature?.Error;
-                if (exception != null)
+                if (context.Items.ContainsKey("OutboundExceptionDispatchInfo"))
                 {
-                    ExceptionDispatchInfo edi = ExceptionDispatchInfo.Capture(exception);
+                    var edi = (ExceptionDispatchInfo)context.Items["OutboundExceptionDispatchInfo"];
+                    context.Items.Remove("OutboundExceptionDispatchInfo");
                     edi.Throw();
                 }
                 return Task.CompletedTask;
             });
 
-            var outboundRequestDelegate = outboundPipeline.Build();
+            var outboundHandler = outboundPipeline.Build();
 
-            app.UseExceptionHandler(appBranch =>
+            return app.Use(async (context, next) =>
             {
-                 appBranch.Run(async context =>
-                 {
-                     await outboundRequestDelegate(context);
-                 });
-            });
+                try
+                {
+                    await next.Invoke();
+                }
+                catch(Exception exception)
+                {
+                    var edi = ExceptionDispatchInfo.Capture(exception);
+                    context.Items.Add("OutboundExceptionDispatchInfo", edi);
+                }
 
-           return app.Use(async (context, next) =>
-            {
-                await next.Invoke();
-
-                await outboundRequestDelegate(context);
+                await outboundHandler(context);
             });
         }
     }

@@ -453,6 +453,7 @@ else
 ## Application Builder Outbound Extension
 * While developing this library I realised that app.UseWhen evaluates the delegate when the request comes but at that point in time MVC hadn't determined the route. This can be overcome by using endpoint routing but as I wasn't intercepting content responses (by default) I only need the middleware to run on the way out of the pipeline so I developed this extension method.
 * [ASP.NET Core Middleware](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/middleware/?view=aspnetcore-2.2)
+* [Preserving a stacktrace when rethrowing exception with ExceptionDispatchInfo](http://derpturkey.com/preserving-a-stacktrace-when-rethrowing-exception-with-exceptiondispatchinfo/)
 
 ```
  public static class ApplicationBuilderExtensions
@@ -641,3 +642,4 @@ This project is licensed under the MIT License
 * [HybridModelBinding](https://github.com/billbogaiv/hybrid-model-binding)
 * [Hellang.Middleware.ProblemDetails](https://github.com/khellang/Middleware)
 * [RFC 7807 - Problem Details for HTTP APIs](https://tools.ietf.org/html/rfc7807)
+* [Preserving a stacktrace when rethrowing exception with ExceptionDispatchInfo](http://derpturkey.com/preserving-a-stacktrace-when-rethrowing-exception-with-exceptiondispatchinfo/)

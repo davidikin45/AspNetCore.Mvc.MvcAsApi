@@ -113,48 +113,43 @@ namespace AspNetCore3
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
+            //If want to intercept content responses
             app.UseRouting(); //.NET Core 3.0
-
 
             if (env.IsDevelopment())
             {
-                // Non Api
-                app.UseWhen(context => context.Request.IsMvc(),
-                    appBranch =>
+                //IsMvc and IsApi require access to IEndpointFeature which is what app.UseEndpointRouting/app.UseRouting/app.UseMvc provide.
+                //When using app.UseWhen the delegate is evaluated when the response comes in before hitting MVC so routing hasn't been evaluated.
+                //Unless we want to intercept content responses we can delay delegate evaluation until it comes back through the pipeline.  
+                app.UseOutbound(appBranch =>
+                {
+                    appBranch.UseWhen(context => context.Request.IsMvc(), mvcBranch => mvcBranch.UseDeveloperExceptionPage());
+                    appBranch.UseWhen(context => context.Request.IsApi(), apiBranch =>
                     {
-                        appBranch.UseDeveloperExceptionPage();
-                    }
-               );
+                        apiBranch.UseProblemDetailsExceptionHandler(options => options.ShowExceptionDetails = true);
+                        apiBranch.UseProblemDetailsErrorResponseHandler(options => options.HandleContentResponses = false);
+                    });
+                });
 
-                // Web Api
-                app.UseWhen(context => context.Request.IsApi(),
-                   appBranch =>
-                   {
-                       appBranch.UseProblemDetailsExceptionHandler(options => options.ShowExceptionDetails = true);
-                       appBranch.UseProblemDetailsErrorResponseHandler();
-                   }
-                );
+                //If handling content responses.
+                //app.UseWhen(context => context.Request.IsApi(), apiBranch => apiBranch.UseProblemDetailsErrorResponseHandler(options => options.HandleContentResponses = true));
 
                 app.UseDatabaseErrorPage();
             }
             else
             {
-                // Non Api
-                app.UseWhen(context => context.Request.IsMvc(),
-                     appBranch =>
-                     {
-                         appBranch.UseExceptionHandler("/Home/Error");
-                     }
-                );
+                app.UseOutbound(appBranch =>
+                {
+                    appBranch.UseWhen(context => context.Request.IsMvc(), mvcBranch => mvcBranch.UseExceptionHandler("/Home/Error"));
+                    appBranch.UseWhen(context => context.Request.IsApi(), apiBranch =>
+                    {
+                        apiBranch.UseProblemDetailsExceptionHandler(options => options.ShowExceptionDetails = false);
+                        apiBranch.UseProblemDetailsErrorResponseHandler(options => options.HandleContentResponses = false);
+                    });
+                });
 
-                // Web Api
-                app.UseWhen(context => context.Request.IsApi(),
-                   appBranch =>
-                   {
-                       appBranch.UseProblemDetailsExceptionHandler(options => options.ShowExceptionDetails = false);
-                       appBranch.UseProblemDetailsErrorResponseHandler();
-                   }
-              );
+                //If handling content responses.
+                //app.UseWhen(context => context.Request.IsApi(), apiBranch => apiBranch.UseProblemDetailsErrorResponseHandler(options => options.HandleContentResponses = true));
 
                 // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
                 app.UseHsts();

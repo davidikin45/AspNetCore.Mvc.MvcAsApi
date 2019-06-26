@@ -381,49 +381,45 @@ services.AddProblemDetailsClientErrorAndExceptionFactory(options => options.Show
 * In order to skip the error handler set httpContext.Items["SkipProblemDetailsErrorResponseHandler"] = true; within middleware. 
 
 ```
+//If want to intercept content responses
 app.UseEndpointRouting(); //.NET Core 2.2
 //OR
 app.UseRouting(); //.NET Core 3.0
 			
 if (!env.IsProduction())
 {
-	// Non Api
-	app.UseWhen(context => context.Request.IsMvc(),
-		appBranch =>
+	//IsMvc and IsApi require access to IEndpointFeature which is what app.UseEndpointRouting/app.UseRouting/app.UseMvc provide.
+	//When using app.UseWhen the delegate is evaluated when the response comes in before hitting MVC so routing hasn't been evaluated.
+	//Unless we want to intercept content responses we can delay delegate evaluation until it comes back through the pipeline. 
+	app.UseOutbound(appBranch =>
+	{
+		appBranch.UseWhen(context => context.Request.IsMvc(), mvcBranch => mvcBranch.UseDeveloperExceptionPage());
+		appBranch.UseWhen(context => context.Request.IsApi(), apiBranch =>
 		{
-			appBranch.UseDeveloperExceptionPage();
-		}
-   );
+			apiBranch.UseProblemDetailsExceptionHandler(options => options.ShowExceptionDetails = true);
+			apiBranch.UseProblemDetailsErrorResponseHandler(options => options.HandleContentResponses = false);
+		});
+	});
 
-	// Web Api
-	 app.UseWhen(context => context.Request.IsApi(),
-		appBranch =>
-		{
-			appBranch.UseProblemDetailsExceptionHandler(options => options.ShowExceptionDetails = true);
-			appBranch.UseProblemDetailsErrorResponseHandler();
-		}
-   );
+	//If handling content responses.
+	//app.UseWhen(context => context.Request.IsApi(), apiBranch => apiBranch.UseProblemDetailsErrorResponseHandler(options => options.HandleContentResponses = true));
 
 	app.UseDatabaseErrorPage();
 }
 else
 {
-	// Non Api
-	app.UseWhen(context => context.Request.IsMvc(),
-		 appBranch =>
-		 {
-			 appBranch.UseExceptionHandler("/Error");
-		 }
-	);
+	app.UseOutbound(appBranch =>
+	{
+		appBranch.UseWhen(context => context.Request.IsMvc(), mvcBranch => mvcBranch.UseExceptionHandler("/Home/Error"));
+		appBranch.UseWhen(context => context.Request.IsApi(), apiBranch =>
+		{
+			apiBranch.UseProblemDetailsExceptionHandler(options => options.ShowExceptionDetails = false);
+			apiBranch.UseProblemDetailsErrorResponseHandler(options => options.HandleContentResponses = false);
+		});
+	});
 
-	// Web Api
-	 app.UseWhen(context => context.Request.IsApi(),
-			appBranch =>
-			{
-				appBranch.UseProblemDetailsExceptionHandler(options => options.ShowExceptionDetails = false);
-				appBranch.UseProblemDetailsErrorResponseHandler();
-			}
-	   );
+	//If handling content responses.
+	//app.UseWhen(context => context.Request.IsApi(), apiBranch => apiBranch.UseProblemDetailsErrorResponseHandler(options => options.HandleContentResponses = true));
    
    app.UseHsts();
 }
@@ -451,6 +447,55 @@ else
     "instance": "/new/contact",
     "traceId": "0HLNK55N49JII:00000002",
     "timeGenerated": "2019-06-18T20:13:39.6308515Z"
+}
+```
+
+## Application Builder Outbound Extension
+* While developing this library I realised that app.UseWhen evaluates the delegate when the request comes but at that point in time MVC hadn't determined the route. This can be overcome by using endpoint routing but as I wasn't intercepting the responses by default I only wanted the middleware to run on the way out of the pipeline so I developed this extension method.
+* [ASP.NET Core Middleware](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/middleware/?view=aspnetcore-2.2)
+
+```
+public static class ApplicationBuilderExtensions
+{
+	public static IApplicationBuilder UseOutbound(this IApplicationBuilder app, Action<IApplicationBuilder> configuration)
+	{
+		return app.UseOutboundWhen(_ => true, configuration);
+	}
+
+	public static IApplicationBuilder UseOutboundWhen(this IApplicationBuilder app, Func<HttpContext, bool> predicate, Action<IApplicationBuilder> configuration)
+	{
+		var outboundPipeline = app.New();
+
+		outboundPipeline.UseWhen(predicate, appBranch => configuration(appBranch));
+		outboundPipeline.Run(context =>
+		{
+			var exceptionHandlerFeature = context.Features.Get<IExceptionHandlerFeature>();
+			var exception = exceptionHandlerFeature?.Error;
+			if (exception != null)
+			{
+				ExceptionDispatchInfo edi = ExceptionDispatchInfo.Capture(exception);
+				edi.Throw();
+			}
+			return Task.CompletedTask;
+		});
+
+		var outboundRequestDelegate = outboundPipeline.Build();
+
+		app.UseExceptionHandler(appBranch =>
+		{
+			 appBranch.Run(async context =>
+			 {
+				 await outboundRequestDelegate(context);
+			 });
+		});
+
+	   return app.Use(async (context, next) =>
+		{
+			await next.Invoke();
+
+			await outboundRequestDelegate(context);
+		});
+	}
 }
 ```
 

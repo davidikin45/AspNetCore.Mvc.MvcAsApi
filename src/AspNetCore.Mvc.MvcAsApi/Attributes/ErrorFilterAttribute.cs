@@ -138,6 +138,12 @@ namespace AspNetCore.Mvc.MvcAsApi.Attributes
         {
 
         };
+
+        public void Clear()
+        {
+            DefaultActionResultFactory = null;
+            ActionResultFactories.Clear();
+        }
     }
 
     public class MvcErrorFilterOptions : ErrorFilterOptions

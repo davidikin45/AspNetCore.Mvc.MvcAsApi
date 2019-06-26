@@ -139,6 +139,12 @@ namespace AspNetCore.Mvc.MvcAsApi.Attributes
         public virtual Dictionary<Type, ExceptionHandlerDelegate> ActionResultFactories { get; set; } = new Dictionary<Type, ExceptionHandlerDelegate>() {
  
         };
+
+        public void Clear()
+        {
+            DefaultActionResultFactory = null;
+            ActionResultFactories.Clear();
+        }
     }
 
     public class MvcExceptionFilterOptions : ExceptionFilterOptions

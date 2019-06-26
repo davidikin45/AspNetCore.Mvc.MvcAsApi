@@ -16,7 +16,7 @@ namespace MvcAsApi.Controllers
             return View();
         }
 
-        public IActionResult Privacy()
+        public IActionResult Privacy(string name = "hello")
         {
             return View();
         }

@@ -82,12 +82,12 @@ services.AddMvc(options =>
 
 services.Configure<JsonOptions>(options =>
 {
-	//default
-	options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+    //default
+    options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
 
-	//BUG: Currently DictionaryKeyPolicy only works for deserialization but not serialization so model state errors are not camelCase!
-	//https://github.com/dotnet/corefx/issues/38840
-	options.JsonSerializerOptions.DictionaryKeyPolicy = JsonNamingPolicy.CamelCase;
+    //BUG: Currently DictionaryKeyPolicy only works for deserialization but not serialization so model state errors are not camelCase!
+    //https://github.com/dotnet/corefx/issues/38840
+    options.JsonSerializerOptions.DictionaryKeyPolicy = JsonNamingPolicy.CamelCase;
 });
 
 //Optional - These could be used independently of MvcAsApiConvention
@@ -196,40 +196,39 @@ public IActionResult ContactMvc([FromBodyAndModelBinding] ContactViewModel viewM
 ```
  services.AddMvc(options =>
 {
-	if(HostingEnvironment.IsDevelopment())
-	{
-		options.Conventions.Add(new MvcAsApiConvention());
-		// OR
-		options.Conventions.Add(new MvcAsApiConvention(o =>
-		{
-			o.MvcErrorOptions = (mvcErrorOptions) => {
+    if(HostingEnvironment.IsDevelopment())
+    {
+        options.Conventions.Add(new MvcAsApiConvention());
+        // OR
+        options.Conventions.Add(new MvcAsApiConvention(o =>
+        {
+            o.MvcErrorOptions = (mvcErrorOptions) => {
 	 
-			};
-			o.MvcExceptionOptions = (mvcExceptionOptions) => {
+        };
+        o.MvcExceptionOptions = (mvcExceptionOptions) => {
 
-			};
-			o.ApiErrorOptions = (apiErrorOptions) => {
+        };
+        o.ApiErrorOptions = (apiErrorOptions) => {
 
-			};
-			o.ApiExceptionOptions = (apiExceptionOptions) => {
+        };
+        o.ApiExceptionOptions = (apiExceptionOptions) => {
 
-			};
-		}));
-		// OR
-		//Does nothing by default.
-		options.Conventions.Add(new MvcErrorFilterConvention(o => { o.ApplyToMvcActions = true; o.ApplyToApiControllerActions = true; }));
-		//Intercepts OperationCanceledException, all other exceptions are logged/handled by UseExceptionHandler/UseDeveloperExceptionPage.
-		options.Conventions.Add(new MvcExceptionFilterConvention(o => { o.ApplyToMvcActions = true; o.ApplyToApiControllerActions = true; }));
-		//Return problem details in json/xml if an error response is returned via Api.
-		options.Conventions.Add(new ApiErrorFilterConvention(o => { o.ApplyToMvcActions = true; o.ApplyToApiControllerActions = true; }));
-		//Return problem details in json/xml if an exception is thrown via Api
-		options.Conventions.Add(new ApiExceptionFilterConvention(o => { o.ApplyToMvcActions = true; o.ApplyToApiControllerActions = true; }));
-		//Post data to MVC Controller from API
-		options.Conventions.Add(new FromBodyAndOtherSourcesConvention(o => { o.ApplyToMvcActions = true; o.ApplyToApiControllerActions = true; o.EnableForParametersWithNoBinding = true; o.EnableForParametersWithFormRouteQueryBinding = true; o.ChangeFromBodyBindingsToFromBodyFormAndRouteQueryBinding = true; }));
-		//Return data uisng output formatter when acccept header is application/json or application/xml
-		options.Conventions.Add(new ConvertViewResultToObjectResultConvention(o => { o.ApplyToMvcActions = true; o.ApplyToApiControllerActions = true; }));
-
-	}
+        };
+    }));
+    // OR
+    //Does nothing by default.
+    options.Conventions.Add(new MvcErrorFilterConvention(o => { o.ApplyToMvcActions = true; o.ApplyToApiControllerActions = true; }));
+    //Intercepts OperationCanceledException, all other exceptions are logged/handled by UseExceptionHandler/UseDeveloperExceptionPage.
+    options.Conventions.Add(new MvcExceptionFilterConvention(o => { o.ApplyToMvcActions = true; o.ApplyToApiControllerActions = true; }));
+    //Return problem details in json/xml if an error response is returned via Api.
+    options.Conventions.Add(new ApiErrorFilterConvention(o => { o.ApplyToMvcActions = true; o.ApplyToApiControllerActions = true; }));
+    //Return problem details in json/xml if an exception is thrown via Api
+    options.Conventions.Add(new ApiExceptionFilterConvention(o => { o.ApplyToMvcActions = true; o.ApplyToApiControllerActions = true; }));
+    //Post data to MVC Controller from API
+    options.Conventions.Add(new FromBodyAndOtherSourcesConvention(o => { o.ApplyToMvcActions = true; o.ApplyToApiControllerActions = true; o.EnableForParametersWithNoBinding = true; o.EnableForParametersWithFormRouteQueryBinding = true; o.ChangeFromBodyBindingsToFromBodyFormAndRouteQueryBinding = true; }));
+    //Return data uisng output formatter when acccept header is application/json or application/xml
+    options.Conventions.Add(new ConvertViewResultToObjectResultConvention(o => { o.ApplyToMvcActions = true; o.ApplyToApiControllerActions = true; }));
+    }
 }).SetCompatibilityVersion(CompatibilityVersion.Version_2_2)
 //ModelState errors as camelCase
 //Even though in 2.2 the default property naming strategy is camelCase, ProcessDictionaryKeys = false which means model state errors are not camelCase by default.
@@ -289,14 +288,14 @@ public IActionResult ContactMvc()
 [HttpPost]
 public IActionResult ContactMvc(dynamic viewModel)
 {
-	if (ModelState.IsValid)
-	{
-		return RedirectToAction(nameof(Index));
-	}
+    if (ModelState.IsValid)
+    {
+        return RedirectToAction(nameof(Index));
+    }
 
-	var viewModel = contactViewModel.ToObject<ContactViewModel>();
+    var viewModel = contactViewModel.ToObject<ContactViewModel>();
 
-	return View(viewModel);
+    return View(viewModel);
 }
 ```
 
@@ -310,16 +309,17 @@ public IActionResult ContactMvc(dynamic viewModel)
 
 ```
  services.AddMvc(options =>
-{	//Default = false. 
-	//If the Request contains Accept header '*/*' the server ignores the Accept headers completely and uses the first output formatter that can format the object (usually json). 
-	//For example when you hit an Api from a web browser.
-	options.RespectBrowserAcceptHeader = false;
+{	
+    //Default = false. 
+    //If the Request contains Accept header '*/*' the server ignores the Accept headers completely and uses the first output formatter that can format the object (usually json). 
+    //For example when you hit an Api from a web browser.
+    options.RespectBrowserAcceptHeader = false;
 	
-	//Default = false but good practice to set this to true.
-	//If the Request does not contain Accept header '*/*' the server MUST find an output formatter based on accept header otherwise return statuscode 406 Not Acceptable. 
-	//For example when making a json/xml/yaml request from postman. 
-	//If this is left as false and request is sent in with accept header 'application/x-yaml', if the server doesn't have a yaml formatter it would use the first output formatter that can format the object (usually json) which is confusing for the client.
-	options.ReturnHttpNotAcceptable = true;
+    //Default = false but good practice to set this to true.
+    //If the Request does not contain Accept header '*/*' the server MUST find an output formatter based on accept header otherwise return statuscode 406 Not Acceptable. 
+    //For example when making a json/xml/yaml request from postman. 
+    //If this is left as false and request is sent in with accept header 'application/x-yaml', if the server doesn't have a yaml formatter it would use the first output formatter that can format the object (usually json) which is confusing for the client.
+    options.ReturnHttpNotAcceptable = true;
 }).SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
 ```
 
@@ -457,45 +457,45 @@ else
 ```
 public static class ApplicationBuilderExtensions
 {
-	public static IApplicationBuilder UseOutbound(this IApplicationBuilder app, Action<IApplicationBuilder> configuration)
-	{
-		return app.UseOutboundWhen(_ => true, configuration);
-	}
+    public static IApplicationBuilder UseOutbound(this IApplicationBuilder app, Action<IApplicationBuilder> configuration)
+    {
+        return app.UseOutboundWhen(_ => true, configuration);
+    }
 
-	public static IApplicationBuilder UseOutboundWhen(this IApplicationBuilder app, Func<HttpContext, bool> predicate, Action<IApplicationBuilder> configuration)
-	{
-		var outboundPipeline = app.New();
+    public static IApplicationBuilder UseOutboundWhen(this IApplicationBuilder app, Func<HttpContext, bool> predicate, Action<IApplicationBuilder> configuration)
+    {
+        var outboundPipeline = app.New();
 
-		outboundPipeline.UseWhen(predicate, appBranch => configuration(appBranch));
-		outboundPipeline.Run(context =>
-		{
-			var exceptionHandlerFeature = context.Features.Get<IExceptionHandlerFeature>();
-			var exception = exceptionHandlerFeature?.Error;
-			if (exception != null)
-			{
-				ExceptionDispatchInfo edi = ExceptionDispatchInfo.Capture(exception);
-				edi.Throw();
-			}
-			return Task.CompletedTask;
-		});
+        outboundPipeline.UseWhen(predicate, appBranch => configuration(appBranch));
+        outboundPipeline.Run(context =>
+        {
+            var exceptionHandlerFeature = context.Features.Get<IExceptionHandlerFeature>();
+            var exception = exceptionHandlerFeature?.Error;
+            if (exception != null)
+            {
+                ExceptionDispatchInfo edi = ExceptionDispatchInfo.Capture(exception);
+                edi.Throw();
+            }
+            return Task.CompletedTask;
+        });
 
-		var outboundRequestDelegate = outboundPipeline.Build();
+        var outboundRequestDelegate = outboundPipeline.Build();
 
-		app.UseExceptionHandler(appBranch =>
-		{
-			 appBranch.Run(async context =>
-			 {
-				 await outboundRequestDelegate(context);
-			 });
-		});
+        app.UseExceptionHandler(appBranch =>
+        {
+            appBranch.Run(async context =>
+            {
+                await outboundRequestDelegate(context);
+            });
+        });
 
-	   return app.Use(async (context, next) =>
-		{
-			await next.Invoke();
+        return app.Use(async (context, next) =>
+        {
+            await next.Invoke();
 
-			await outboundRequestDelegate(context);
-		});
-	}
+            await outboundRequestDelegate(context);
+        });
+    }
 }
 ```
 
@@ -532,21 +532,21 @@ services.AddDynamicModelBinder();
 			
  public IActionResult Dynamic()
 {
-	return View(new ContactViewModel());
+    return View(new ContactViewModel());
 }
 
 [ValidateAntiForgeryToken]
 [HttpPost]
 public IActionResult Dynamic(dynamic contactViewModel)
 {
-	if (ModelState.IsValid)
-	{
-		return RedirectToAction(nameof(Index));
-	}
+    if (ModelState.IsValid)
+    {
+        return RedirectToAction(nameof(Index));
+    }
 
-	var viewModel = contactViewModel.ToObject<ContactViewModel>();
+    var viewModel = contactViewModel.ToObject<ContactViewModel>();
 
-	return View(viewModel);
+    return View(viewModel);
 }
 ```
 

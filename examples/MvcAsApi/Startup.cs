@@ -111,7 +111,7 @@ namespace MvcAsApi
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
         {
             //If want to intercept content responses
-            app.UseEndpointRouting(); //.NET Core 2.2
+            //app.UseEndpointRouting(); //.NET Core 2.2
             //OR
             //app.UseRouting(); //.NET Core 3.0
 

@@ -26,6 +26,18 @@ namespace MvcAsApi.Controllers
             return View(new ContactViewModel());
         }
 
+        [Route("profile/{userId}")]
+        public IActionResult Profile()
+        {
+            return View();
+        }
+
+        [Route("purchases/{userId}")]
+        public IActionResult Purchases()
+        {
+            return View();
+        }
+
         public IActionResult ErrorResponse()
         {
             return BadRequest();

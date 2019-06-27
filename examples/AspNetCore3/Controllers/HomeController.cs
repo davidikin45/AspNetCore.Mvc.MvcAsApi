@@ -25,6 +25,18 @@ namespace AspNetCore3.Controllers
             return View(new ContactViewModel());
         }
 
+        [Route("profile/{userId}")]
+        public IActionResult Profile()
+        {
+            return View();
+        }
+
+        [Route("purchases/{userId}")]
+        public IActionResult Purchases()
+        {
+            return View();
+        }
+
         public IActionResult ProblemDetails(ContactViewModel contactViewModel)
         {
             return ValidationProblem();

@@ -83,6 +83,10 @@ namespace MvcAsApi
                     //Return data uisng output formatter when acccept header is application/json or application/xml
                     //options.Conventions.Add(new ConvertViewResultToObjectResultConvention(o => { o.ApplyToMvcActions = true; o.ApplyToApiControllerActions = true; }));
                 }
+
+                //There seems to be big issues with endpoint routing in 2.2 when generating links so suggest disabling it.
+	            //https://github.com/aspnet/AspNetCore/issues/5055
+	            options.EnableEndpointRouting = false;
             }).SetCompatibilityVersion(CompatibilityVersion.Version_2_2)
             //ModelState errors as camelCase
             //Even though in 2.2 the default property naming strategy is camelCase, ProcessDictionaryKeys = false which means model state errors are not camelCase by default.

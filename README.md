@@ -45,7 +45,10 @@ services.AddMvc(options =>
     {
         options.Conventions.Add(new MvcAsApiConvention());
     }
-
+	
+	//There seems to be issues with endpoint routing in 2.2 when generating links so suggest disabling it.
+	//https://github.com/aspnet/AspNetCore/issues/5055
+	options.EnableEndpointRouting = false;
 }).SetCompatibilityVersion(CompatibilityVersion.Version_2_2)
 //ModelState errors as camelCase
 //Even though in 2.2 the default property naming strategy is camelCase, ProcessDictionaryKeys = false which means model state errors are not camelCase by default.
@@ -382,7 +385,7 @@ services.AddProblemDetailsClientErrorAndExceptionFactory(options => options.Show
 
 ```
 //If want to intercept content responses
-app.UseEndpointRouting(); //.NET Core 2.2
+//app.UseEndpointRouting(); //.NET Core 2.2 - There seems to be bugs with EndpointRoutingUrlHelper in 2.2
 //OR
 app.UseRouting(); //.NET Core 3.0
 			

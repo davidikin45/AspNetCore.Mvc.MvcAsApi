@@ -36,7 +36,7 @@ PM> Install-Package AspNetCore.Mvc.MvcAsApi
 
 ## Quick Start ASP.NET Core 2.2
 ```
-services.AddMvc(options =>
+var builder = services.AddMvc(options =>
 {
     options.RespectBrowserAcceptHeader = false;
     options.ReturnHttpNotAcceptable = true;
@@ -59,19 +59,19 @@ services.AddMvc(options =>
 if(HostingEnvironment.IsDevelopment())
 {
     //MVC Dynamic Model Binding
-    services.AddDynamicModelBinder();
+    builder.AddMvcDynamicModelBinder();
 
     //Api StatusCodeResult Enhanced Problem Details (instance, traceId, timeGenerated, delegate factory)
-    services.AddProblemDetailsClientErrorAndExceptionFactory(options => options.ShowExceptionDetails = true);
+    builder.AddMvcProblemDetailsClientErrorAndExceptionFactory(options => options.ShowExceptionDetails = true);
 
     //Api Invalid ModelState Enhanced Problem Details (instance, traceId, timeGenerated, delegate factory)
-    services.ConfigureProblemDetailsInvalidModelStateFactory(options => options.EnableAngularErrors = false);
+    builder.ConfigureMvcProblemDetailsInvalidModelStateFactory(options => options.EnableAngularErrors = false);
 }
 ```
 
 ## Quick Start ASP.NET Core 3.0
 ```
-services.AddMvc(options =>
+var builder = services.AddMvc(options =>
 {
     options.RespectBrowserAcceptHeader = false;
     options.ReturnHttpNotAcceptable = true;
@@ -97,13 +97,13 @@ services.Configure<JsonOptions>(options =>
 if(HostingEnvironment.IsDevelopment())
 {
     //MVC Dynamic Model Binding
-    services.AddDynamicModelBinder();
+    builder.AddMvcDynamicModelBinder();
 
     //Api StatusCodeResult Enhanced Problem Details (instance, traceId, timeGenerated, delegate factory)
-    services.AddProblemDetailsClientErrorAndExceptionFactory(options => options.ShowExceptionDetails = true);
+    builder.AddMvcProblemDetailsClientErrorAndExceptionFactory(options => options.ShowExceptionDetails = true);
 
     //Api Invalid ModelState Enhanced Problem Details (instance, traceId, timeGenerated, delegate factory)
-    services.ConfigureProblemDetailsInvalidModelStateFactory(options => options.EnableAngularErrors = false);
+    builder.ConfigureMvcProblemDetailsInvalidModelStateFactory(options => options.EnableAngularErrors = false);
 }
 ```
 
@@ -197,7 +197,7 @@ public IActionResult ContactMvc([FromBodyAndModelBinding] ContactViewModel viewM
 * The MvcAsApiConvention adds all six conventions in one line of code which is useful for Development.
 
 ```
- services.AddMvc(options =>
+var builder = services.AddMvc(options =>
 {
     if(HostingEnvironment.IsDevelopment())
     {
@@ -242,10 +242,10 @@ public IActionResult ContactMvc([FromBodyAndModelBinding] ContactViewModel viewM
 if(HostingEnvironment.IsDevelopment())
 {
     //Api StatusCodeResult Enhanced Problem Details (instance, traceId, timeGenerated, delegate factory)
-    services.AddProblemDetailsClientErrorAndExceptionFactory(options => options.ShowExceptionDetails = true);
+    builder.AddMvcProblemDetailsClientErrorAndExceptionFactory(options => options.ShowExceptionDetails = true);
 
     //Api Invalid ModelState Enhanced Problem Details (instance, traceId, timeGenerated, delegate factory)
-    services.ConfigureProblemDetailsInvalidModelStateFactory();
+    builder.ConfigureMvcProblemDetailsInvalidModelStateFactory();
 }
 
 [Route("contact")]
@@ -337,7 +337,7 @@ public IActionResult ContactMvc(dynamic viewModel)
 * Use [ConfigureApiBehaviorOptions to configure problem detail type and title mapping](https://docs.microsoft.com/en-us/aspnet/core/web-api/?view=aspnetcore-2.2).
 
 ```
-services.AddProblemDetailsClientErrorAndExceptionFactory(options => options.ShowExceptionDetails = true);
+builder.AddMvcProblemDetailsClientErrorAndExceptionFactory(options => options.ShowExceptionDetails = true);
 ```
 
 | Attribute                     | Description                                                                                                                                                                                    |
@@ -557,7 +557,7 @@ public IActionResult Dynamic(dynamic contactViewModel)
 * There is an option to add angular formatted errors to the Invalid Model State Problem Details also.
 
 ```
- services.ConfigureProblemDetailsInvalidModelStateFactory(options => options.EnableAngularErrors = true);
+ builder.ConfigureMvcProblemDetailsInvalidModelStateFactory(options => options.EnableAngularErrors = true);
 ```
 
 * Example invalid ModelState response

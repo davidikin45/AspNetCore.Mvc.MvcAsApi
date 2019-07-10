@@ -14,8 +14,10 @@ namespace AspNetCore.Mvc.MvcAsApi.Extensions
     //https://github.com/aspnet/AspNetCore/blob/c565386a3ed135560bc2e9017aa54a950b4e35dd/src/Mvc/Mvc.Core/src/Infrastructure/ModelStateInvalidFilter.cs
     public static class ProblemDetailsInvalidModelStateFactoryExtensions
     {
-        public static IServiceCollection ConfigureProblemDetailsInvalidModelStateFactory(this IServiceCollection services, Action<ProblemDetailsInvalidModelStateFactoryOptions> setupAction = null)
+        public static IMvcBuilder ConfigureMvcProblemDetailsInvalidModelStateFactory(this IMvcBuilder builder, Action<ProblemDetailsInvalidModelStateFactoryOptions> setupAction = null)
         {
+            var services = builder.Services;
+
             var problemDetailsInvalidModelStateFactoryOptions = new ProblemDetailsInvalidModelStateFactoryOptions();
             if (setupAction != null)
                 setupAction(problemDetailsInvalidModelStateFactoryOptions);
@@ -32,7 +34,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Extensions
                 services.Configure(problemDetailsInvalidModelStateFactoryOptions.ConfigureApiBehaviorOptions);
             }
 
-            return services;
+            return builder;
         }
 
         //Needs to be after AddMvc or use ConfigureApiBehaviourOptions

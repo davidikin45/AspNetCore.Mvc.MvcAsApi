@@ -24,16 +24,29 @@ namespace AspNetCore.Mvc.MvcAsApi.Extensions
     public static class ProblemDetailsClientErrorFactoryExtensions
     {
 
-        public static IServiceCollection AddProblemDetailsClientErrorAndExceptionFactory(this IServiceCollection services)
+        /// <summary>
+        /// Adds MVC problem details client error and exception factory services to the application.
+        /// </summary>
+        public static IMvcBuilder AddMvcProblemDetailsClientErrorAndExceptionFactory(this IMvcBuilder builder)
         {
-            return services.AddSingleton<IClientErrorFactory, DelegateClientErrorFactory>();
+            var services = builder.Services;
+
+            services.AddSingleton<IClientErrorFactory, DelegateClientErrorFactory>();
+
+            return builder;
         }
 
-        public static IServiceCollection AddProblemDetailsClientErrorAndExceptionFactory(this IServiceCollection services, Action<DelegateClientErrorFactoryOptions> setupAction)
+        /// <summary>
+        /// Adds MVC problem details client error and exception factory services to the application.
+        /// </summary>
+        public static IMvcBuilder AddMvcProblemDetailsClientErrorAndExceptionFactory(this IMvcBuilder builder, Action<DelegateClientErrorFactoryOptions> setupAction)
         {
-            services.AddProblemDetailsClientErrorAndExceptionFactory();
+            var services = builder.Services;
+
+            builder.AddMvcProblemDetailsClientErrorAndExceptionFactory();
             services.Configure(setupAction);
-            return services;
+
+            return builder;
         }
     }
 }

@@ -311,10 +311,17 @@ namespace AspNetCore.Mvc.MvcAsApi.ModelBinding
 
     public static class DynamicModelBinderExtensions
     {
-        public static IServiceCollection AddDynamicModelBinder(this IServiceCollection services)
+        /// <summary>
+        /// Adds MVC dynamic model binder provider to the application.
+        /// </summary>
+        public static IMvcBuilder AddMvcDynamicModelBinder(this IMvcBuilder builder)
         {
+            var services = builder.Services;
+
             services.AddSingleton<IConfigureOptions<MvcOptions>, DynamicModelBinderMvcOptionsSetup>();
-            return services;
+
+
+            return builder;
         }
     }
     public class DynamicModelBinderMvcOptionsSetup : IConfigureOptions<MvcOptions>

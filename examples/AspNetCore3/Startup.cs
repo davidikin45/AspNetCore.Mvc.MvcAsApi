@@ -34,7 +34,7 @@ namespace AspNetCore3
             });
 
 
-            services.AddControllersWithViews(options => {
+            var builder = services.AddControllersWithViews(options => {
 
                 //Default = false. 
                 //If the Request contains Accept header '*/*' the server ignores the Accept headers completely and uses the first output formatter that can format the object (usually json). 
@@ -100,13 +100,13 @@ namespace AspNetCore3
             if (HostingEnvironment.IsDevelopment())
             {
                 //MVC Dynamic Model Binding
-                services.AddDynamicModelBinder();
+                builder.AddMvcDynamicModelBinder();
 
                 //Api StatusCodeResult Enhanced Problem Details (traceId, timeGenerated, delegate factory)
-                services.AddProblemDetailsClientErrorAndExceptionFactory(options => { options.ShowExceptionDetails = true; });
+                builder.AddMvcProblemDetailsClientErrorAndExceptionFactory(options => { options.ShowExceptionDetails = true; });
 
                 //Api Invalid ModelState Enhanced Problem Details (traceId, timeGenerated, delegate factory)
-                services.ConfigureProblemDetailsInvalidModelStateFactory(options => { options.EnableAngularErrors = true; });
+                builder.ConfigureMvcProblemDetailsInvalidModelStateFactory(options => { options.EnableAngularErrors = true; });
             }
         }
 

@@ -1,18 +1,14 @@
-﻿using AspNetCore.Mvc.MvcAsApi;
-using AspNetCore.Mvc.MvcAsApi.Conventions;
+﻿using AspNetCore.Mvc.MvcAsApi.Conventions;
 using AspNetCore.Mvc.MvcAsApi.Extensions;
 using AspNetCore.Mvc.MvcAsApi.Middleware;
 using AspNetCore.Mvc.MvcAsApi.ModelBinding;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Internal;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json.Serialization;
-using System.Threading.Tasks;
 
 namespace MvcAsApi
 {
@@ -37,7 +33,7 @@ namespace MvcAsApi
                 options.MinimumSameSitePolicy = SameSiteMode.None;
             });
 
-            services.AddMvc(options =>
+            var builder = services.AddMvc(options =>
             {
                 //Default = false. 
                 //If the Request contains Accept header '*/*' the server ignores the Accept headers completely and uses the first output formatter that can format the object (usually json). 
@@ -97,13 +93,13 @@ namespace MvcAsApi
             if (HostingEnvironment.IsDevelopment())
             {
                 //MVC Dynamic Model Binding
-                services.AddDynamicModelBinder();
+                builder.AddMvcDynamicModelBinder();
 
                 //Api StatusCodeResult Enhanced Problem Details (traceId, timeGenerated, delegate factory)
-                services.AddProblemDetailsClientErrorAndExceptionFactory(options => { options.ShowExceptionDetails = true; });
+                builder.AddMvcProblemDetailsClientErrorAndExceptionFactory(options => { options.ShowExceptionDetails = true; });
 
                 //Api Invalid ModelState Enhanced Problem Details (traceId, timeGenerated, delegate factory)
-                services.ConfigureProblemDetailsInvalidModelStateFactory(options => { options.EnableAngularErrors = true; });
+                builder.ConfigureMvcProblemDetailsInvalidModelStateFactory(options => { options.EnableAngularErrors = true; });
             }
         }
 

@@ -38,6 +38,8 @@ PM> Install-Package AspNetCore.Mvc.MvcAsApi
 ```
 var builder = services.AddMvc(options =>
 {
+	options.Filters.Add<ApiGenerateAntiForgeryTokenAttribute>();
+
     options.RespectBrowserAcceptHeader = false;
     options.ReturnHttpNotAcceptable = true;
 
@@ -67,12 +69,18 @@ if(HostingEnvironment.IsDevelopment())
     //Api Invalid ModelState Enhanced Problem Details (instance, traceId, timeGenerated, delegate factory)
     builder.ConfigureMvcProblemDetailsInvalidModelStateFactory(options => options.EnableAngularErrors = false);
 }
+
+services.AddAntiforgery(o => {
+	o.HeaderName = "X-XSRF-TOKEN";
+});
 ```
 
 ## Quick Start ASP.NET Core 3.0
 ```
 var builder = services.AddMvc(options =>
 {
+	options.Filters.Add<ApiGenerateAntiForgeryTokenAttribute>();
+	
     options.RespectBrowserAcceptHeader = false;
     options.ReturnHttpNotAcceptable = true;
 
@@ -105,6 +113,10 @@ if(HostingEnvironment.IsDevelopment())
     //Api Invalid ModelState Enhanced Problem Details (instance, traceId, timeGenerated, delegate factory)
     builder.ConfigureMvcProblemDetailsInvalidModelStateFactory(options => options.EnableAngularErrors = false);
 }
+
+services.AddAntiforgery(o => {
+	o.HeaderName = "X-XSRF-TOKEN";
+});
 ```
 
 ## Usage
@@ -193,7 +205,7 @@ public IActionResult ContactMvc([FromBodyAndModelBinding] ContactViewModel viewM
     return View(viewModel);
 }
 ```
-* There are six conventions which add required binding attributes, handle Api Error Responses/Exceptions, handle Mvc Error Responses/Exceptions and switch [ValidateAntiForgeryToken] > [AutoValidateFormAntiForgeryToken]. This ensures AntiForgeryToken still occurs for Mvc but is bypassed for Api requests.
+* There are six conventions which add required binding attributes, handle Api Error Responses/Exceptions, handle Mvc Error Responses/Exceptions and switch [ValidateAntiForgeryToken] > [AutoValidateFormAntiForgeryToken]. This ensures AntiForgeryToken still occurs for Mvc but is bypassed for Api requests, by default the bypassing only occurs in Development environment, see Cross-Site Request Forgery (XSRF/CSRF).
 * The MvcAsApiConvention adds all six conventions in one line of code which is useful for Development.
 
 ```
@@ -205,6 +217,8 @@ var builder = services.AddMvc(options =>
         // OR
         options.Conventions.Add(new MvcAsApiConvention(o =>
         {
+			o.DisableAntiForgeryForApiRequestsInDevelopmentEnvironment = true;
+            o.DisableAntiForgeryForApiRequestsInAllEnvironments = false;
             o.MvcErrorOptions = (mvcErrorOptions) => {
 	 
         };
@@ -501,11 +515,17 @@ else
 }
 ```
 
-## Authorization 
+## Cross-Site Request Forgery (XSRF/CSRF)
+* APIS are vulnerable to XSRF/CSRF attack if the server uses authenticated session(cookies)
+* The solution is
+* - Ensure that the 'safe' HTTP operations, such as GET, HEAD, OPTIONS, TRACE cannot be used to alter any server-side state.
+* - Ensure that any 'unsafe' HTTP operations, such as POST, PUT, PATCH and DELETE, always require a valid CSRF token!
+* [Prevent Cross-Site Request Forgery (XSRF/CSRF) attacks in ASP.NET Core](https://docs.microsoft.com/en-us/aspnet/core/security/anti-request-forgery?view=aspnetcore-2.2)
 
-| Attribute                                   | Description                                                                        |
-|:--------------------------------------------|:-----------------------------------------------------------------------------------|
-| [AutoValidateFormAntiforgeryTokenAttribute] | Ensures only Post requests with Form content-type is checked for AntiForgeryToken. |
+| Attribute                                   | Description                                                                                                                                |
+|:--------------------------------------------|:-------------------------------------------------------------------------------------------------------------------------------------------|
+| [ApiGenerateAntiForgeryTokenAttribute]      | Generates AntiForgeryToken for GET, HEAD, OPTIONS, TRACE Api requests                                                                      |
+| [AutoValidateFormAntiforgeryTokenAttribute] | Ensures only POST, PUT, PATCH and DELETE requests with Form content-type (By default only in Development) is checked for AntiForgeryToken. |
 
 
 ## Model Binding Attributes
@@ -646,3 +666,4 @@ This project is licensed under the MIT License
 * [Hellang.Middleware.ProblemDetails](https://github.com/khellang/Middleware)
 * [RFC 7807 - Problem Details for HTTP APIs](https://tools.ietf.org/html/rfc7807)
 * [Preserving a stacktrace when rethrowing exception with ExceptionDispatchInfo](http://derpturkey.com/preserving-a-stacktrace-when-rethrowing-exception-with-exceptiondispatchinfo/)
+* [Prevent Cross-Site Request Forgery (XSRF/CSRF) attacks in ASP.NET Core](https://docs.microsoft.com/en-us/aspnet/core/security/anti-request-forgery?view=aspnetcore-2.2)

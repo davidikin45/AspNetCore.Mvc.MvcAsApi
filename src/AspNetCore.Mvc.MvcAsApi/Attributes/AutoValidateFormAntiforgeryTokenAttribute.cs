@@ -1,14 +1,21 @@
 ﻿using AspNetCore.Mvc.MvcAsApi.Extensions;
 using Microsoft.AspNetCore.Antiforgery;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace AspNetCore.Mvc.MvcAsApi.Attributes
 {
+    //IgnoreAntiforgeryTokenAttribute
+    // ValidateAntiforgeryTokenAttribute relies on order to determine if it's the effective policy.
+    // When two antiforgery filters of the same order are added to the application model, the effective policy is determined
+    // by whatever appears later in the list (closest to the action).
+
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = false, Inherited = true)]
     public class AutoValidateFormAntiforgeryTokenAttribute : TypeFilterAttribute, IOrderedFilter
     {
@@ -16,17 +23,20 @@ namespace AspNetCore.Mvc.MvcAsApi.Attributes
         public new int Order { get; set; } = 1000;
         public new bool IsReusable => true;
 
-        public AutoValidateFormAntiforgeryTokenAttribute() : base(typeof(AutoValidateFormAntiforgeryTokenAuthorizationFilterImpl))
+        public AutoValidateFormAntiforgeryTokenAttribute(bool enableForAllEnvironments = false) : base(typeof(AutoValidateFormAntiforgeryTokenAuthorizationFilterImpl))
         {
-
+            Arguments = new object[] { enableForAllEnvironments };
         }
 
         private class AutoValidateFormAntiforgeryTokenAuthorizationFilterImpl : IAsyncAuthorizationFilter, IAntiforgeryPolicy
         {
             private readonly IAntiforgery _antiforgery;
             private readonly ILogger _logger;
+            private readonly IHostingEnvironment _environment;
 
-            public AutoValidateFormAntiforgeryTokenAuthorizationFilterImpl(IAntiforgery antiforgery, ILoggerFactory loggerFactory)
+            private readonly bool _enableForAllEnvironments;
+
+            public AutoValidateFormAntiforgeryTokenAuthorizationFilterImpl(IAntiforgery antiforgery, ILoggerFactory loggerFactory, IHostingEnvironment environment, bool enableForAllEnvironments)
             {
                 if (antiforgery == null)
                 {
@@ -35,6 +45,8 @@ namespace AspNetCore.Mvc.MvcAsApi.Attributes
 
                 _antiforgery = antiforgery;
                 _logger = loggerFactory.CreateLogger(GetType());
+                _environment = environment;
+                _enableForAllEnvironments = enableForAllEnvironments;
             }
 
             public async Task OnAuthorizationAsync(AuthorizationFilterContext context)
@@ -78,9 +90,11 @@ namespace AspNetCore.Mvc.MvcAsApi.Attributes
                     string.Equals("OPTIONS", method, StringComparison.OrdinalIgnoreCase))
                 {
                     return false;
-                }
+                }     
 
-                if (!context.HttpContext.Request.HasFormContentType)
+                //POST, PUT, PATCH and DELETE
+                //!context.HttpContext.Request.HasFormContentType
+                if ((_enableForAllEnvironments || _environment.IsDevelopment()) && context.HttpContext.Request.IsApi())
                 {
                     return false;
                 }

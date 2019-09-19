@@ -40,13 +40,16 @@ namespace AspNetCore.Mvc.MvcAsApi.Conventions
 
         public void Apply(ActionModel action)
         {
-            if (!action.Filters.OfType<AutoValidateFormAntiforgeryTokenAttribute>().Any())
+            if (_options.DisableAntiForgeryForApiRequestsInDevelopmentEnvironment || _options.DisableAntiForgeryForApiRequestsInAllEnvironments)
             {
-                var antiForgeryTokenFilters = action.Filters.Where(f => f is ValidateAntiForgeryTokenAttribute || f is AutoValidateAntiforgeryTokenAttribute).ToList();
-                if (antiForgeryTokenFilters.Any())
+                if (!action.Filters.OfType<AutoValidateFormAntiforgeryTokenAttribute>().Any())
                 {
-                    antiForgeryTokenFilters.ForEach(af => action.Filters.Remove(af));
-                    action.Filters.Add(new AutoValidateFormAntiforgeryTokenAttribute());
+                    var antiForgeryTokenFilters = action.Filters.Where(f => f is ValidateAntiForgeryTokenAttribute || f is AutoValidateAntiforgeryTokenAttribute).ToList();
+                    if (antiForgeryTokenFilters.Any())
+                    {
+                        antiForgeryTokenFilters.ForEach(af => action.Filters.Remove(af));
+                        action.Filters.Add(new AutoValidateFormAntiforgeryTokenAttribute());
+                    }
                 }
             }
 
@@ -55,13 +58,16 @@ namespace AspNetCore.Mvc.MvcAsApi.Conventions
 
         public void Apply(ControllerModel controller)
         {
-            if (!controller.Filters.OfType<AutoValidateFormAntiforgeryTokenAttribute>().Any())
+            if (_options.DisableAntiForgeryForApiRequestsInDevelopmentEnvironment || _options.DisableAntiForgeryForApiRequestsInAllEnvironments)
             {
-                var antiForgeryTokenFilters = controller.Filters.Where(f => f is ValidateAntiForgeryTokenAttribute || f is AutoValidateAntiforgeryTokenAttribute).ToList();
-                if (antiForgeryTokenFilters.Any())
+                if (!controller.Filters.OfType<AutoValidateFormAntiforgeryTokenAttribute>().Any())
                 {
-                    antiForgeryTokenFilters.ForEach(af => controller.Filters.Remove(af));
-                    controller.Filters.Add(new AutoValidateFormAntiforgeryTokenAttribute());
+                    var antiForgeryTokenFilters = controller.Filters.Where(f => f is ValidateAntiForgeryTokenAttribute || f is AutoValidateAntiforgeryTokenAttribute).ToList();
+                    if (antiForgeryTokenFilters.Any())
+                    {
+                        antiForgeryTokenFilters.ForEach(af => controller.Filters.Remove(af));
+                        controller.Filters.Add(new AutoValidateFormAntiforgeryTokenAttribute());
+                    }
                 }
             }
         }
@@ -114,6 +120,8 @@ namespace AspNetCore.Mvc.MvcAsApi.Conventions
 
     public class FromBodyOrOtherSourcesConventionOptions
     {
+        public bool DisableAntiForgeryForApiRequestsInDevelopmentEnvironment { get; set; } = true;
+        public bool DisableAntiForgeryForApiRequestsInAllEnvironments { get; set; } = false;
         public bool ApplyToMvcActions { get; set; } = true;
         public bool ApplyToApiControllerActions { get; set; } = true;
 

@@ -1,4 +1,5 @@
-﻿using AspNetCore.Mvc.MvcAsApi.Conventions;
+﻿using AspNetCore.Mvc.MvcAsApi.Attributes;
+using AspNetCore.Mvc.MvcAsApi.Conventions;
 using AspNetCore.Mvc.MvcAsApi.Extensions;
 using AspNetCore.Mvc.MvcAsApi.Middleware;
 using AspNetCore.Mvc.MvcAsApi.ModelBinding;
@@ -35,6 +36,8 @@ namespace MvcAsApi
 
             var builder = services.AddMvc(options =>
             {
+                options.Filters.Add<ApiGenerateAntiForgeryTokenAttribute>();
+
                 //Default = false. 
                 //If the Request contains Accept header '*/*' the server ignores the Accept headers completely and uses the first output formatter that can format the object (usually json). 
                 //For example when you hit an Api from a web browser.
@@ -52,6 +55,8 @@ namespace MvcAsApi
                     // OR
                     options.Conventions.Add(new MvcAsApiConvention(o =>
                     {
+                        o.DisableAntiForgeryForApiRequestsInDevelopmentEnvironment = true;
+                        o.DisableAntiForgeryForApiRequestsInAllEnvironments = false;
                         o.MvcErrorOptions = (mvcErrorOptions) => {
                             mvcErrorOptions.Clear();
                         };
@@ -101,6 +106,16 @@ namespace MvcAsApi
                 //Api Invalid ModelState Enhanced Problem Details (traceId, timeGenerated, delegate factory)
                 builder.ConfigureMvcProblemDetailsInvalidModelStateFactory(options => { options.EnableAngularErrors = true; });
             }
+
+            //If enabling Mvc > Api in production will need to be able to send back XSRF token via header.
+            //APIS are vulnerable to CSRF attack as long as the server uses authenticated session(cookies).
+            //The solution is
+            //1.Ensure that the 'safe' HTTP operations, such as GET, HEAD, OPTIONS, TRACE cannot be used to alter any server-side state.
+            //2.Ensure that any 'unsafe' HTTP operations, such as POST, PUT, PATCH and DELETE, always require a valid CSRF token!
+            services.AddAntiforgery(o => {
+                // Angular's default header name for sending the XSRF token.
+                o.HeaderName = "X-XSRF-TOKEN";
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

@@ -12,6 +12,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using MediaTypeSegmentWithQuality = AspNetCore.Mvc.MvcAsApi.Internal.MediaTypeSegmentWithQuality;
 
 namespace AspNetCore.Mvc.MvcAsApi.Extensions
 {

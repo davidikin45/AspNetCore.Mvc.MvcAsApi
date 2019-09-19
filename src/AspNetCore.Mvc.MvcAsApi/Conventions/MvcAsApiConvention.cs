@@ -26,7 +26,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Conventions
             //Return problem details in json/xml if an exception is thrown via Api
             new ApiExceptionFilterConvention(options => { options.ApplyToMvcActions = _options.ApplyToMvcActions; options.ApplyToApiControllerActions = _options.ApplyToApiControllerActions; options.ApiExceptionOptions = _options.ApiExceptionOptions; }).Apply(application);
             //Post data to MVC Controller from API
-            new FromBodyAndOtherSourcesConvention(options => { options.ApplyToMvcActions = _options.ApplyToMvcActions; options.ApplyToApiControllerActions = _options.ApplyToApiControllerActions; options.EnableForParametersWithNoBinding = true; options.EnableForParametersWithFormRouteQueryBinding = true; options.ChangeFromBodyBindingsToFromBodyFormAndRouteQueryBinding = true; }).Apply(application);
+            new FromBodyAndOtherSourcesConvention(options => { options.DisableAntiForgeryForApiRequestsInDevelopmentEnvironment = _options.DisableAntiForgeryForApiRequestsInDevelopmentEnvironment; options.DisableAntiForgeryForApiRequestsInAllEnvironments = _options.DisableAntiForgeryForApiRequestsInAllEnvironments; options.ApplyToMvcActions = _options.ApplyToMvcActions; options.ApplyToApiControllerActions = _options.ApplyToApiControllerActions; options.EnableForParametersWithNoBinding = true; options.EnableForParametersWithFormRouteQueryBinding = true; options.ChangeFromBodyBindingsToFromBodyFormAndRouteQueryBinding = true; }).Apply(application);
             //Return data uisng output formatter when acccept header is application/json or application/xml
             new ConvertViewResultToObjectResultConvention(options => { options.ApplyToMvcActions = _options.ApplyToMvcActions; options.ApplyToApiControllerActions = _options.ApplyToApiControllerActions; }).Apply(application);
         }
@@ -43,5 +43,8 @@ namespace AspNetCore.Mvc.MvcAsApi.Conventions
 
         public Action<ApiErrorFilterOptions> ApiErrorOptions;
         public Action<ApiExceptionFilterOptions> ApiExceptionOptions;
+
+        public bool DisableAntiForgeryForApiRequestsInDevelopmentEnvironment { get; set; } = true;
+        public bool DisableAntiForgeryForApiRequestsInAllEnvironments { get; set; } = false;
     }
 }

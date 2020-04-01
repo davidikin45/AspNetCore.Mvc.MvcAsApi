@@ -36,7 +36,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Conventions
     {
         public bool ApplyToMvcActions { get; set; } = true;
 
-        public bool ApplyToApiControllerActions { get; set; } = true;
+        public bool ApplyToApiControllerActions { get; set; } = false; //This allows Swagger to show Json Body field rather than query string.
 
         public Action<MvcErrorFilterOptions> MvcErrorOptions;
         public Action<MvcExceptionFilterOptions> MvcExceptionOptions;

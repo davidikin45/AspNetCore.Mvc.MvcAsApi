@@ -1,8 +1,10 @@
 ﻿using AspNetCore.Mvc.MvcAsApi.Factories;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.DependencyInjection;
 using System;
+using System.Linq;
 
 namespace AspNetCore.Mvc.MvcAsApi.Extensions
 {
@@ -95,8 +97,11 @@ namespace AspNetCore.Mvc.MvcAsApi.Extensions
 
                 // if there are modelstate errors & all keys were correctly
                 // found/parsed we're dealing with validation errors
+                var bodyParams = actionContext.ActionDescriptor.Parameters.Where(p => p.BindingInfo.BindingSource == null || p.BindingInfo.BindingSource.CanAcceptDataFrom(BindingSource.Body)).ToList();
+                var bodyParamKeys = bodyParams.Select(p => p.Name).ToList();
+
                 if (actionContext.ModelState.ErrorCount > 0
-                    && actionExecutingContext?.ActionArguments.Count == actionContext.ActionDescriptor.Parameters.Count)
+                   & bodyParams.Count > 0 && actionExecutingContext?.ActionArguments.Keys.Where(key => bodyParamKeys.Contains(key)).Count() == bodyParams.Count)
                 {
                     status = StatusCodes.Status422UnprocessableEntity;
                 }

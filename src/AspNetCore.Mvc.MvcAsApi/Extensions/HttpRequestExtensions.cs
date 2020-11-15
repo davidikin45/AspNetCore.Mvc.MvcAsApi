@@ -53,9 +53,9 @@ namespace AspNetCore.Mvc.MvcAsApi.Extensions
                 if (endpoint != null)
                 {
                     //endpoint found
-                    var controllerACtionDescriptor = endpoint.Metadata.OfType<ApiControllerAttribute>().FirstOrDefault();
+                    var controllerActionDescriptor = endpoint.Metadata.OfType<ApiControllerAttribute>().FirstOrDefault();
 
-                    var isApiController = controllerACtionDescriptor != null;
+                    var isApiController = controllerActionDescriptor != null;
 
                     return isApiController;
                 }

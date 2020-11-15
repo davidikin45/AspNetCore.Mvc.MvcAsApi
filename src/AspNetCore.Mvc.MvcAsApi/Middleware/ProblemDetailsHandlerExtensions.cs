@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System;
@@ -19,7 +20,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Middleware
         public static IApplicationBuilder UseProblemDetailsErrorResponseHandler(this IApplicationBuilder app, Action<ProblemDetailsErrorResponseHandlerOptions> configureOptions = null)
         {
             var options = new ProblemDetailsErrorResponseHandlerOptions();
-            if(configureOptions != null)
+            if (configureOptions != null)
             {
                 configureOptions(options);
             }
@@ -28,7 +29,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Middleware
             return app.UseMiddleware<ProblemDetailsErrorResponseHandlerMiddleware>(options);
         }
 
-       public static IApplicationBuilder UseProblemDetailsExceptionHandler(this IApplicationBuilder app, Action<ProblemDetailsExceptionHandlerOptions> configureOptions = null)
+        public static IApplicationBuilder UseProblemDetailsExceptionHandler(this IApplicationBuilder app, Action<ProblemDetailsExceptionHandlerOptions> configureOptions = null)
         {
             var options = new ProblemDetailsExceptionHandlerOptions();
             if (configureOptions != null)
@@ -46,7 +47,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Middleware
         {
             return appBuilder =>
             {
-          
+
                 //runtime
                 appBuilder.Run(async context =>
                 {
@@ -61,7 +62,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Middleware
                     var logger = loggerFactory.CreateLogger<ExceptionHandlerMiddleware>();
 
                     bool showExceptionDetails = false;
-                    if(exception != null && (exceptionOptions.ShowExceptionDetails || exceptionOptions.ShowExceptionDetailsDelegate(context, exception)))
+                    if (exception != null && (exceptionOptions.ShowExceptionDetails || exceptionOptions.ShowExceptionDetailsDelegate(context, exception)))
                     {
                         showExceptionDetails = true;
                     }
@@ -80,7 +81,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Middleware
                         {
                             var factory = exceptionOptions.ProblemDetailFactories[type];
                             var problemDetails = factory(context, logger, exception, showExceptionDetails);
-                            if(problemDetails != null)
+                            if (problemDetails != null)
                             {
                                 await context.WriteProblemDetailsResultAsync(problemDetails).ConfigureAwait(false);
                             }
@@ -88,7 +89,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Middleware
                         }
                     }
 
-                    if(exceptionOptions.DefaultProblemDetailFactory != null)
+                    if (exceptionOptions.DefaultProblemDetailFactory != null)
                     {
                         var problemDetails = exceptionOptions.DefaultProblemDetailFactory(context, logger, exception, showExceptionDetails);
                         if (problemDetails != null)
@@ -116,13 +117,26 @@ namespace AspNetCore.Mvc.MvcAsApi.Middleware
 
         public ProblemDetailsFactoryDelegate DefaultProblemDetailFactory = ((context, logger, exception, showExceptionDetails) =>
         {
-
             //UseExceptionHandler logs error automatically
-            var problemDetails = ProblemDetailsFactory.GetProblemDetails(context, "An error has occured.", StatusCodes.Status500InternalServerError, showExceptionDetails ? exception.ToString() : null);
+            ProblemDetails problemDetails = null;
+
+#if NETCOREAPP3_0
+            var problemDetailsFactory = context.RequestServices.GetService<ProblemDetailsFactory>();
+            if (problemDetailsFactory != null)
+            {
+                problemDetails = problemDetailsFactory.CreateProblemDetails(context, StatusCodes.Status500InternalServerError, null, null, showExceptionDetails ? exception.ToString() : null);
+            }
+#endif
+            if (problemDetails == null)
+            {
+                problemDetails = StaticProblemDetailsFactory.CreateProblemDetails(context, StatusCodes.Status500InternalServerError, null, null, showExceptionDetails ? exception.ToString() : null);
+            }
+
             return problemDetails;
         });
 
-        public Dictionary<Type, ProblemDetailsFactoryDelegate> ProblemDetailFactories { get; set; } = new Dictionary<Type, ProblemDetailsFactoryDelegate>() {
+        public Dictionary<Type, ProblemDetailsFactoryDelegate> ProblemDetailFactories { get; set; } = new Dictionary<Type, ProblemDetailsFactoryDelegate>()
+        {
 
         };
     }

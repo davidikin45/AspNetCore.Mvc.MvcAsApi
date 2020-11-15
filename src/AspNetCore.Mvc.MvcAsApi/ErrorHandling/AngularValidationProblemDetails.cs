@@ -27,6 +27,10 @@ namespace AspNetCore.Mvc.MvcAsApi.ErrorHandling
 
         }
 
+
+#if NETCOREAPP3_0
+        [System.Text.Json.Serialization.JsonPropertyName("angularErrors")]
+#endif
         [JsonProperty(PropertyName = "angularErrors")]
         public SerializableDictionary<string, AngularFormattedValidationError[]> AngularErrors
         {

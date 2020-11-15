@@ -2,6 +2,7 @@
 using AspNetCore.Mvc.MvcAsApi.Factories;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.Extensions.Logging;
 using Microsoft.IO;
 using Microsoft.Net.Http.Headers;
@@ -10,6 +11,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace AspNetCore.Mvc.MvcAsApi.Middleware
 {
@@ -169,9 +171,24 @@ namespace AspNetCore.Mvc.MvcAsApi.Middleware
 
         public ProblemDetailsFactoryDelegate DefaultProblemDetailFactory { get; set; } = ((context, logger) =>
         {
-            var problemDetails = ProblemDetailsFactory.GetProblemDetails(context, "", context.Response.StatusCode, null);
+            ProblemDetails problemDetails = null;
+
+#if NETCOREAPP3_0
+            var problemDetailsFactory = context.RequestServices.GetService<ProblemDetailsFactory>();
+            if (problemDetailsFactory != null)
+            {
+                problemDetails = problemDetailsFactory.CreateProblemDetails(context, context.Response.StatusCode);
+            }
+#endif
+
+            if (problemDetails == null)
+            {
+                problemDetails = StaticProblemDetailsFactory.CreateProblemDetails(context, context.Response.StatusCode);
+            }
+
             return problemDetails;
         });
+
         public Dictionary<int, ProblemDetailsFactoryDelegate> ProblemDetailFactories { get; set; } = new Dictionary<int, ProblemDetailsFactoryDelegate>()
         {
 

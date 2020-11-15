@@ -63,10 +63,9 @@ if(HostingEnvironment.IsDevelopment())
     //MVC Dynamic Model Binding
     builder.AddMvcDynamicModelBinder();
 
-    //Api StatusCodeResult Enhanced Problem Details (instance, traceId, timeGenerated, delegate factory)
-    builder.AddMvcProblemDetailsClientErrorAndExceptionFactory(options => options.ShowExceptionDetails = true);
+    builder.AddMvcEnhancedProblemDetailsClientErrorFactory();
 
-    //Api Invalid ModelState Enhanced Problem Details (instance, traceId, timeGenerated, delegate factory)
+    //Api Invalid ModelState Enhanced Problem Details (instance, traceId, timeGenerated, delegate factory), 400 vs 422
     builder.ConfigureMvcProblemDetailsInvalidModelStateFactory(options => options.EnableAngularErrors = false);
 }
 
@@ -108,10 +107,11 @@ if(HostingEnvironment.IsDevelopment())
     builder.AddMvcDynamicModelBinder();
 
     //Api StatusCodeResult Enhanced Problem Details (instance, traceId, timeGenerated, delegate factory)
-    builder.AddMvcProblemDetailsClientErrorAndExceptionFactory(options => options.ShowExceptionDetails = true);
-
-    //Api Invalid ModelState Enhanced Problem Details (instance, traceId, timeGenerated, delegate factory)
-    builder.ConfigureMvcProblemDetailsInvalidModelStateFactory(options => options.EnableAngularErrors = false);
+    builder.AddMvcEnhancedProblemDetailsFactory(options => { options.EnableAngularErrors = true; });
+    builder.AddMvcEnhancedProblemDetailsClientErrorFactory();
+	
+    //400 vs 422
+    builder.ConfigureMvcProblemDetailsInvalidModelStateFactory();
 }
 
 services.AddAntiforgery(o => {
@@ -255,11 +255,12 @@ var builder = services.AddMvc(options =>
 //Optional
 if(HostingEnvironment.IsDevelopment())
 {
-    //Api StatusCodeResult Enhanced Problem Details (instance, traceId, timeGenerated, delegate factory)
-    builder.AddMvcProblemDetailsClientErrorAndExceptionFactory(options => options.ShowExceptionDetails = true);
+   //Api StatusCodeResult Enhanced Problem Details (traceId, timeGenerated, delegate factory)
+	builder.AddMvcEnhancedProblemDetailsFactory(options => { options.EnableAngularErrors = true; });
+	builder.AddMvcEnhancedProblemDetailsClientErrorFactory();
 
-    //Api Invalid ModelState Enhanced Problem Details (instance, traceId, timeGenerated, delegate factory)
-    builder.ConfigureMvcProblemDetailsInvalidModelStateFactory();
+	//400 vs 422
+	builder.ConfigureMvcProblemDetailsInvalidModelStateFactory();
 }
 
 [Route("contact")]

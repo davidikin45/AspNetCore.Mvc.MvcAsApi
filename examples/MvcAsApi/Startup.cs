@@ -100,10 +100,9 @@ namespace MvcAsApi
                 //MVC Dynamic Model Binding
                 builder.AddMvcDynamicModelBinder();
 
-                //Api StatusCodeResult Enhanced Problem Details (traceId, timeGenerated, delegate factory)
-                builder.AddMvcProblemDetailsClientErrorAndExceptionFactory(options => { options.ShowExceptionDetails = true; });
+                builder.AddMvcEnhancedProblemDetailsClientErrorFactory();
 
-                //Api Invalid ModelState Enhanced Problem Details (traceId, timeGenerated, delegate factory)
+                //Api Invalid ModelState Enhanced Problem Details (traceId, timeGenerated, delegate factory), 400 vs 422
                 builder.ConfigureMvcProblemDetailsInvalidModelStateFactory(options => { options.EnableAngularErrors = true; });
             }
 

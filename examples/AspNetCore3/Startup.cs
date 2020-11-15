@@ -105,10 +105,12 @@ namespace AspNetCore3
                 builder.AddMvcDynamicModelBinder();
 
                 //Api StatusCodeResult Enhanced Problem Details (traceId, timeGenerated, delegate factory)
-                builder.AddMvcProblemDetailsClientErrorAndExceptionFactory(options => { options.ShowExceptionDetails = true; });
+                builder.AddMvcEnhancedProblemDetailsFactory(options => { options.EnableAngularErrors = true; });
 
-                //Api Invalid ModelState Enhanced Problem Details (traceId, timeGenerated, delegate factory)
-                builder.ConfigureMvcProblemDetailsInvalidModelStateFactory(options => { options.EnableAngularErrors = true; });
+                builder.AddMvcEnhancedProblemDetailsClientErrorFactory();
+
+                //400 vs 422
+                builder.ConfigureMvcProblemDetailsInvalidModelStateFactory();
             }
 
             //If enabling Mvc > Api in production will need to be able to send back XSRF token via header.

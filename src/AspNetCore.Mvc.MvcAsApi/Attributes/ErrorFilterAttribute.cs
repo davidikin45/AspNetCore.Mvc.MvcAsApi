@@ -9,6 +9,9 @@ using System.Collections.Generic;
 
 namespace AspNetCore.Mvc.MvcAsApi.Attributes
 {
+    //Replaces ClientErrorResultFilter
+    //https://github.com/dotnet/aspnetcore/blob/c565386a3ed135560bc2e9017aa54a950b4e35dd/src/Mvc/Mvc.Core/src/Infrastructure/ClientErrorResultFilter.cs
+
     public class ApiErrorFilterAttribute : ErrorFilterAttribute
     {
         public ApiErrorFilterAttribute()

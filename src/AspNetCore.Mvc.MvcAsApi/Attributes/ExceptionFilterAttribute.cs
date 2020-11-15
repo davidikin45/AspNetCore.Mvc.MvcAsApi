@@ -1,8 +1,10 @@
-﻿using AspNetCore.Mvc.MvcAsApi.ActionResults;
-using AspNetCore.Mvc.MvcAsApi.Extensions;
+﻿using AspNetCore.Mvc.MvcAsApi.Extensions;
+using AspNetCore.Mvc.MvcAsApi.Factories;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -105,7 +107,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Attributes
                     if(_options.ActionResultFactories.ContainsKey(type))
                     {
                         var factory = _options.ActionResultFactories[type];
-                        var result = factory(context, exception, _logger);
+                        var result = factory(context, exception, _logger, _options.ShowExceptionDetails);
                         if(result != null)
                         {
                             context.ExceptionHandled = true;
@@ -118,7 +120,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Attributes
 
                 if(_options.DefaultActionResultFactory != null)
                 {
-                    var result = _options.DefaultActionResultFactory(context, exception, _logger);
+                    var result = _options.DefaultActionResultFactory(context, exception, _logger, _options.ShowExceptionDetails);
                     if (result != null)
                     {
                         context.ExceptionHandled = true;
@@ -131,9 +133,11 @@ namespace AspNetCore.Mvc.MvcAsApi.Attributes
 
     public abstract class ExceptionFilterOptions
     {
+        public bool ShowExceptionDetails { get; set; } = false;
+
         public Func<ExceptionContext, ExceptionFilterOptions, bool> HandleException { get; set; } = ((context, options) => options.DefaultActionResultFactory != null || context.Exception.GetType().GetTypeAndInterfaceHierarchy().Any(type => options.ActionResultFactories.ContainsKey(type)));
 
-        public delegate IActionResult ExceptionHandlerDelegate(ActionContext context, Exception exception, ILogger logger);
+        public delegate IActionResult ExceptionHandlerDelegate(ActionContext context, Exception exception, ILogger logger, bool showExceptionDetails);
 
         public virtual ExceptionHandlerDelegate DefaultActionResultFactory { get; set; } = null;
         public virtual Dictionary<Type, ExceptionHandlerDelegate> ActionResultFactories { get; set; } = new Dictionary<Type, ExceptionHandlerDelegate>() {
@@ -145,6 +149,32 @@ namespace AspNetCore.Mvc.MvcAsApi.Attributes
             DefaultActionResultFactory = null;
             ActionResultFactories.Clear();
         }
+
+        public static IActionResult ProblemDetailsResponse(ActionContext actionContext, Exception exception, int statusCode, bool showExceptionDetails)
+        {
+            string detail = null;
+            if (exception != null && showExceptionDetails)
+            {
+                detail = exception.ToString();
+            }
+
+#if NETCOREAPP3_0
+            var problemDetailsFactory = actionContext.HttpContext.RequestServices.GetRequiredService<ProblemDetailsFactory>();
+            var problemDetails = problemDetailsFactory.CreateProblemDetails(actionContext.HttpContext, statusCode, detail);
+#else
+                var problemDetails = StaticProblemDetailsFactory.CreateProblemDetails(actionContext.HttpContext, statusCode, detail);
+#endif
+
+            return new ObjectResult(problemDetails)
+            {
+                StatusCode = problemDetails.Status,
+                ContentTypes =
+                    {
+                        "application/problem+json",
+                        "application/problem+xml",
+                    },
+            };
+        }
     }
 
     public class MvcExceptionFilterOptions : ExceptionFilterOptions
@@ -153,30 +183,29 @@ namespace AspNetCore.Mvc.MvcAsApi.Attributes
         public override ExceptionHandlerDelegate DefaultActionResultFactory { get; set; } = null;
 
         public override Dictionary<Type, ExceptionHandlerDelegate> ActionResultFactories { get; set; } = new Dictionary<Type, ExceptionHandlerDelegate>() {
-           {typeof(OperationCanceledException), ((context, exception, logger) => {
+           {typeof(OperationCanceledException), ((context, exception, logger, showExceptionDetails) => {
                  logger.LogInformation("Request was cancelled.");
-                 return new ExceptionResult(exception, 499);
+                 return new StatusCodeResult(499);
+                 //https://andrewlock.net/using-cancellationtokens-in-asp-net-core-mvc-controllers/
             })}
         };
     }
 
     public class ApiExceptionFilterOptions : ExceptionFilterOptions
     {
-        public override ExceptionHandlerDelegate DefaultActionResultFactory { get; set; } = ((context, exception, logger) =>
-        {
-            //Log and swallow exception.
-            logger.UnhandledException(exception);
-            return new ExceptionResult(exception, StatusCodes.Status500InternalServerError);
-        });
+        //Let exception flow through to UseExceptionHandler/UseDeveloperExceptionPage where it will be handled/logged.
+        public override ExceptionHandlerDelegate DefaultActionResultFactory { get; set; } = null;
 
         public override Dictionary<Type, ExceptionHandlerDelegate> ActionResultFactories { get; set; } = new Dictionary<Type, ExceptionHandlerDelegate>() {
-             {typeof(TimeoutException), ((context, exception, logger) => {
+             {typeof(TimeoutException), ((context, exception, logger, showExceptionDetails) => {
                  logger.LogInformation("Request timed out.");
-                 return new ExceptionResult(exception, StatusCodes.Status504GatewayTimeout);
+                 var result = ProblemDetailsResponse(context, exception, StatusCodes.Status504GatewayTimeout, showExceptionDetails);
+                 return result;
             })},
-            {typeof(OperationCanceledException), ((context, exception, logger) => {
+            {typeof(OperationCanceledException), ((context, exception, logger, showExceptionDetails) => {
                   logger.LogInformation("Request was cancelled.");
-                 return new ExceptionResult(exception, 499);
+                  var result = ProblemDetailsResponse(context, exception, 499, showExceptionDetails);
+                 return result;
             })}
         };
     }

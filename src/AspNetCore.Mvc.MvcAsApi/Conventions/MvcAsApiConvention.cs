@@ -27,7 +27,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Conventions
             new ApiExceptionFilterConvention(options => { options.ApplyToMvcActions = _options.ApplyToMvcActions; options.ApplyToApiControllerActions = _options.ApplyToApiControllerActions; options.ApiExceptionOptions = _options.ApiExceptionOptions; }).Apply(application);
             //Post data to MVC Controller from API
             new FromBodyAndOtherSourcesConvention(options => { options.DisableAntiForgeryForApiRequestsInDevelopmentEnvironment = _options.DisableAntiForgeryForApiRequestsInDevelopmentEnvironment; options.DisableAntiForgeryForApiRequestsInAllEnvironments = _options.DisableAntiForgeryForApiRequestsInAllEnvironments; options.ApplyToMvcActions = _options.ApplyToMvcActions; options.ApplyToApiControllerActions = _options.ApplyToApiControllerActions; options.EnableForParametersWithNoBinding = true; options.EnableForParametersWithFormRouteQueryBinding = true; options.ChangeFromBodyBindingsToFromBodyFormAndRouteQueryBinding = true; }).Apply(application);
-            //Return data uisng output formatter when acccept header is application/json or application/xml
+            //Return data using output formatter when acccept header is application/json or application/xml
             new ConvertViewResultToObjectResultConvention(options => { options.ApplyToMvcActions = _options.ApplyToMvcActions; options.ApplyToApiControllerActions = _options.ApplyToApiControllerActions; }).Apply(application);
         }
     }

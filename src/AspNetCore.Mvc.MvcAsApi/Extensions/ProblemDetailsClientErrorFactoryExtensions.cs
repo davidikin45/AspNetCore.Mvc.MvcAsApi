@@ -23,27 +23,20 @@ namespace AspNetCore.Mvc.MvcAsApi.Extensions
     //https://github.com/aspnet/AspNetCore/blob/a8b67a2b98fefedf7de9902f255209110c83c658/src/Middleware/Diagnostics/src/DeveloperExceptionPage/DeveloperExceptionPageMiddleware.cs
     public static class ProblemDetailsClientErrorFactoryExtensions
     {
-
-        /// <summary>
-        /// Adds MVC problem details client error and exception factory services to the application.
-        /// </summary>
-        public static IMvcBuilder AddMvcProblemDetailsClientErrorAndExceptionFactory(this IMvcBuilder builder)
+        public static IMvcBuilder AddMvcEnhancedProblemDetailsClientErrorFactory(this IMvcBuilder builder)
         {
             var services = builder.Services;
 
-            services.AddSingleton<IClientErrorFactory, DelegateClientErrorFactory>();
+            services.AddSingleton<IClientErrorFactory, EnhancedProblemDetailsClientErrorFactory>();
 
             return builder;
         }
 
-        /// <summary>
-        /// Adds MVC problem details client error and exception factory services to the application.
-        /// </summary>
-        public static IMvcBuilder AddMvcProblemDetailsClientErrorAndExceptionFactory(this IMvcBuilder builder, Action<DelegateClientErrorFactoryOptions> setupAction)
+        public static IMvcBuilder AddMvcEnhancedProblemDetailsClientErrorFactory(this IMvcBuilder builder, Action<EnhancedClientErrorFactoryOptions> setupAction)
         {
             var services = builder.Services;
 
-            builder.AddMvcProblemDetailsClientErrorAndExceptionFactory();
+            builder.AddMvcEnhancedProblemDetailsClientErrorFactory();
             services.Configure(setupAction);
 
             return builder;

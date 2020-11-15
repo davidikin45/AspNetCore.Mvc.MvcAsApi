@@ -43,7 +43,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Factories
                 };
             }
 
-            if(title != null)
+            if (title != null)
             {
                 // For validation problem details, don't overwrite the default title with null.
                 problemDetails.Title = title;
@@ -142,8 +142,8 @@ namespace AspNetCore.Mvc.MvcAsApi.Factories
 
             if (apiBehaviorOptions != null && apiBehaviorOptions.ClientErrorMapping.TryGetValue(statusCode, out var clientErrorData))
             {
-                 problemDetails.Title = problemDetails.Title ?? clientErrorData.Title;
-                 problemDetails.Type = problemDetails.Type ?? clientErrorData.Link;
+                problemDetails.Title = problemDetails.Title ?? clientErrorData.Title;
+                problemDetails.Type = problemDetails.Type ?? clientErrorData.Link;
             }
 
             problemDetails.Instance = problemDetails.Instance ?? httpContext.Request.Path;

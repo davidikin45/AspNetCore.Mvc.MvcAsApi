@@ -18,8 +18,8 @@ namespace AspNetCore.Mvc.MvcAsApi.Extensions
             {
                 if (problemDetails.Status is int statusCode && apiBehaviorOptions != null && apiBehaviorOptions.ClientErrorMapping.TryGetValue(statusCode, out var errorData))
                 {
-                    problemDetails.Title = errorData.Title;
-                    problemDetails.Type = errorData.Link;
+                    problemDetails.Title = problemDetails.Title ?? errorData.Title;
+                    problemDetails.Type = problemDetails.Title ?? errorData.Link;
                 }
 
                 var result = new ObjectResult(problemDetails)

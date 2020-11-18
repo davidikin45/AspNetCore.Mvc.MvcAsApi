@@ -39,7 +39,8 @@ namespace AspNetCore.Mvc.MvcAsApi.Middleware
 
             var loggerFactory = app.ApplicationServices.GetRequiredService<ILoggerFactory>();
 
-            //UseExceptionHandler logs error automatically
+            //UseExceptionHandler logs error automatically, Do we want to do this?
+            //If a path is set the request is sent back down the pipeline again.
             return app.UseExceptionHandler(HandleException(loggerFactory, options));
         }
 
@@ -124,12 +125,12 @@ namespace AspNetCore.Mvc.MvcAsApi.Middleware
             var problemDetailsFactory = context.RequestServices.GetService<ProblemDetailsFactory>();
             if (problemDetailsFactory != null)
             {
-                problemDetails = problemDetailsFactory.CreateProblemDetails(context, StatusCodes.Status500InternalServerError, null, null, showExceptionDetails ? exception.ToString() : null);
+                problemDetails = problemDetailsFactory.CreateProblemDetails(context, StatusCodes.Status500InternalServerError, showExceptionDetails ? exception.Message : null, null, null, showExceptionDetails ? exception.ToString() : null);
             }
 #endif
             if (problemDetails == null)
             {
-                problemDetails = StaticProblemDetailsFactory.CreateProblemDetails(context, StatusCodes.Status500InternalServerError, null, null, showExceptionDetails ? exception.ToString() : null);
+                problemDetails = StaticProblemDetailsFactory.CreateProblemDetails(context, StatusCodes.Status500InternalServerError, showExceptionDetails ? exception.Message : null, null, showExceptionDetails ? exception.ToString() : null);
             }
 
             return problemDetails;

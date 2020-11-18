@@ -13,6 +13,9 @@ namespace AspNetCore.Mvc.MvcAsApi.Extensions
         private static readonly Action<ILogger, Exception> _responseStartedErrorHandler =
             LoggerMessage.Define(LogLevel.Warning, new EventId(2, "ResponseStarted"), "The response has already started, the error handler will not be executed.");
 
+        private static readonly Action<ILogger, Exception> _errorHandlerException =
+            LoggerMessage.Define(LogLevel.Error, new EventId(3, "Exception"), "An exception was thrown attempting to execute the error handler.");
+
         //ErrorFilterAttribute
         private static readonly Action<ILogger, Type, int?, Type, Exception> _transformingClientError = LoggerMessage.Define<Type, int?, Type>(
        LogLevel.Trace,
@@ -43,6 +46,12 @@ namespace AspNetCore.Mvc.MvcAsApi.Extensions
         {
             _responseStartedErrorHandler(logger, null);
         }
+
+        public static void ErrorHandlerException(this ILogger logger, Exception exception)
+        {
+            _errorHandlerException(logger, exception);
+        }
+
 
         public static void TransformingClientError(this ILogger logger, Type initialType, Type replacedType, int? statusCode)
         {

@@ -12,6 +12,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace AspNetCore.Mvc.MvcAsApi.Middleware
 {
@@ -22,22 +23,22 @@ namespace AspNetCore.Mvc.MvcAsApi.Middleware
         private readonly RequestDelegate _next;
 
         private readonly ILogger _logger;
-        private readonly ProblemDetailsErrorResponseHandlerOptions _errorResponseoptions;
+        private readonly ProblemDetailsErrorResponseHandlerOptions _options;
         private readonly RecyclableMemoryStreamManager _recyclableMemoryStreamManager;
         private readonly Func<object, Task> _clearCacheHeadersDelegate;
 
-        public ProblemDetailsErrorResponseHandlerMiddleware(RequestDelegate next, ILogger<ProblemDetailsErrorResponseHandlerMiddleware> logger, IServiceProvider serviceProvider, ProblemDetailsErrorResponseHandlerOptions errorResponseoptions)
+        public ProblemDetailsErrorResponseHandlerMiddleware(RequestDelegate next, ILogger<ProblemDetailsErrorResponseHandlerMiddleware> logger, IServiceProvider serviceProvider, IOptions<ProblemDetailsErrorResponseHandlerOptions> options)
         {
             _next = next;
             _logger = logger;
-            _errorResponseoptions = errorResponseoptions;
+            _options = options.Value;
             _recyclableMemoryStreamManager = new RecyclableMemoryStreamManager();
             _clearCacheHeadersDelegate = OnResponseStarting;
         }
 
         public async Task InvokeAsync(HttpContext context)
         {
-            if (_errorResponseoptions.HandleContentResponses)
+            if (_options.HandleContentResponses)
             {
                 //Copy a pointer to the original response body stream
                 var originalBodyStream = context.Response.Body;
@@ -87,7 +88,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Middleware
                 return;
             }
 
-            var factory = _errorResponseoptions.ProblemDetailFactories.ContainsKey(context.Response.StatusCode) ? _errorResponseoptions.ProblemDetailFactories[context.Response.StatusCode] : _errorResponseoptions.DefaultProblemDetailFactory ?? null;
+            var factory = _options.ProblemDetailFactories.ContainsKey(context.Response.StatusCode) ? _options.ProblemDetailFactories[context.Response.StatusCode] : _options.DefaultProblemDetailFactory ?? null;
 
             if (factory == null)
             {
@@ -117,26 +118,26 @@ namespace AspNetCore.Mvc.MvcAsApi.Middleware
         {
             if (!string.IsNullOrEmpty(context.Response.ContentType) && context.Response.ContentType.Contains("application/problem"))
             {
-                if (!_errorResponseoptions.HandleProblemDetailResponses)
+                if (!_options.HandleProblemDetailResponses)
                 {
                     return false;
                 }
             }
-            else if (!_errorResponseoptions.HandleContentResponses && (!string.IsNullOrEmpty(context.Response.ContentType) || context.Response.ContentLength.HasValue))
+            else if (!_options.HandleContentResponses && (!string.IsNullOrEmpty(context.Response.ContentType) || context.Response.ContentLength.HasValue))
             {
                 return false;
             }
-            else if (!_errorResponseoptions.HandleNoContentResponses && string.IsNullOrEmpty(context.Response.ContentType))
-            {
-                return false;
-            }
-
-            if (!_errorResponseoptions.HandleError(context, _errorResponseoptions))
+            else if (!_options.HandleNoContentResponses && string.IsNullOrEmpty(context.Response.ContentType))
             {
                 return false;
             }
 
-            if(_errorResponseoptions.IgnoreResponsesWithContextItemKeys.Any(key => context.Items.ContainsKey(key)))
+            if (!_options.HandleError(context, _options))
+            {
+                return false;
+            }
+
+            if(_options.IgnoreResponsesWithContextItemKeys.Any(key => context.Items.ContainsKey(key)))
             {
                 return false;
             }

@@ -1,15 +1,10 @@
 ﻿using AspNetCore.Mvc.MvcAsApi.Extensions;
-using AspNetCore.Mvc.MvcAsApi.Factories;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace AspNetCore.Mvc.MvcAsApi.Middleware
 {
@@ -25,9 +20,9 @@ namespace AspNetCore.Mvc.MvcAsApi.Middleware
                 configureOptions(options);
             }
 
-
-            return app.UseMiddleware<ProblemDetailsErrorResponseHandlerMiddleware>(options);
+            return app.UseMiddleware<ProblemDetailsErrorResponseHandlerMiddleware>(Options.Create(options));
         }
+
 
         public static IApplicationBuilder UseProblemDetailsExceptionHandler(this IApplicationBuilder app, Action<ProblemDetailsExceptionHandlerOptions> configureOptions = null)
         {
@@ -37,10 +32,22 @@ namespace AspNetCore.Mvc.MvcAsApi.Middleware
                 configureOptions(options);
             }
 
+            return app.UseMiddleware<ProblemDetailsErrorResponseHandlerMiddleware>(Options.Create(options));
+        }
+
+        public static IApplicationBuilder UseProblemDetailsExceptionHandler2(this IApplicationBuilder app, Action<ProblemDetailsExceptionHandlerOptions> configureOptions = null)
+        {
+            var options = new ProblemDetailsExceptionHandlerOptions();
+            if (configureOptions != null)
+            {
+                configureOptions(options);
+            }
+
             var loggerFactory = app.ApplicationServices.GetRequiredService<ILoggerFactory>();
 
-            //UseExceptionHandler logs error automatically, Do we want to do this?
+            //UseExceptionHandler logs error automatically, Do we want to do this if we are handling them?
             //If a path is set the request is sent back down the pipeline again.
+            //https://docs.microsoft.com/en-us/aspnet/core/web-api/handle-errors?view=aspnetcore-5.0
             return app.UseExceptionHandler(HandleException(loggerFactory, options));
         }
 
@@ -103,42 +110,5 @@ namespace AspNetCore.Mvc.MvcAsApi.Middleware
                 });
             };
         }
-    }
-
-
-    public class ProblemDetailsExceptionHandlerOptions
-    {
-        public bool ShowExceptionDetails { get; set; } = false;
-
-        public Func<HttpContext, Exception, bool> ShowExceptionDetailsDelegate { get; set; } = ((context, exception) => false);
-
-        public Func<HttpContext, ProblemDetailsExceptionHandlerOptions, Exception, bool> HandleException { get; set; } = ((context, options, exception) => options.DefaultProblemDetailFactory != null || exception.GetType().GetTypeAndInterfaceHierarchy().Any(type => options.ProblemDetailFactories.ContainsKey(type)));
-
-        public delegate ProblemDetails ProblemDetailsFactoryDelegate(HttpContext context, ILogger logger, Exception exception, bool showExceptionDetails);
-
-        public ProblemDetailsFactoryDelegate DefaultProblemDetailFactory = ((context, logger, exception, showExceptionDetails) =>
-        {
-            //UseExceptionHandler logs error automatically
-            ProblemDetails problemDetails = null;
-
-#if NETCOREAPP3_0
-            var problemDetailsFactory = context.RequestServices.GetService<ProblemDetailsFactory>();
-            if (problemDetailsFactory != null)
-            {
-                problemDetails = problemDetailsFactory.CreateProblemDetails(context, StatusCodes.Status500InternalServerError, showExceptionDetails ? exception.Message : null, null, null, showExceptionDetails ? exception.ToString() : null);
-            }
-#endif
-            if (problemDetails == null)
-            {
-                problemDetails = StaticProblemDetailsFactory.CreateProblemDetails(context, StatusCodes.Status500InternalServerError, showExceptionDetails ? exception.Message : null, null, showExceptionDetails ? exception.ToString() : null);
-            }
-
-            return problemDetails;
-        });
-
-        public Dictionary<Type, ProblemDetailsFactoryDelegate> ProblemDetailFactories { get; set; } = new Dictionary<Type, ProblemDetailsFactoryDelegate>()
-        {
-
-        };
     }
 }

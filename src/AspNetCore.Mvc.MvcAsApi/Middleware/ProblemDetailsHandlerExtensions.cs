@@ -32,7 +32,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Middleware
                 configureOptions(options);
             }
 
-            return app.UseMiddleware<ProblemDetailsErrorResponseHandlerMiddleware>(Options.Create(options));
+            return app.UseMiddleware<ProblemDetailsExceptionHandlerMiddleware>(Options.Create(options));
         }
 
         public static IApplicationBuilder UseProblemDetailsExceptionHandler2(this IApplicationBuilder app, Action<ProblemDetailsExceptionHandlerOptions> configureOptions = null)

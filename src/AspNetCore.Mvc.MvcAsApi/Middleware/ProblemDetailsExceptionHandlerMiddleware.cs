@@ -43,7 +43,10 @@ namespace AspNetCore.Mvc.MvcAsApi.Middleware
                 edi = ExceptionDispatchInfo.Capture(exception);
             }
 
-            await HandleExceptionAsync(context, edi);
+            if(edi != null)
+            {
+                await HandleExceptionAsync(context, edi);
+            }
         }
 
         private async Task HandleExceptionAsync(HttpContext context, ExceptionDispatchInfo edi)

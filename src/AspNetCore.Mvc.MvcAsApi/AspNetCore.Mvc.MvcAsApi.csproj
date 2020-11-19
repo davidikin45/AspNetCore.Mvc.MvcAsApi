@@ -11,9 +11,9 @@
     <RepositoryType>git</RepositoryType>
     <PackageTags>ModelBinding ViewResultToObjectResult MvcAsApi</PackageTags>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <Version>1.9.1</Version>
-    <AssemblyVersion>1.9.1.0</AssemblyVersion>
-    <FileVersion>1.9.1.0</FileVersion>
+    <Version>1.9.2</Version>
+    <AssemblyVersion>1.9.2.0</AssemblyVersion>
+    <FileVersion>1.9.2.0</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>

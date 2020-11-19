@@ -27,7 +27,7 @@ namespace AspNetCore.Mvc.MvcAsApi.Middleware
         private readonly RecyclableMemoryStreamManager _recyclableMemoryStreamManager;
         private readonly Func<object, Task> _clearCacheHeadersDelegate;
 
-        public ProblemDetailsErrorResponseHandlerMiddleware(RequestDelegate next, ILogger<ProblemDetailsErrorResponseHandlerMiddleware> logger, IServiceProvider serviceProvider, IOptions<ProblemDetailsErrorResponseHandlerOptions> options)
+        public ProblemDetailsErrorResponseHandlerMiddleware(RequestDelegate next, ILogger<ProblemDetailsErrorResponseHandlerMiddleware> logger, IOptions<ProblemDetailsErrorResponseHandlerOptions> options)
         {
             _next = next;
             _logger = logger;
